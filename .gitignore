@@ -62,11 +62,14 @@ wandb/
 # Outputs we *do* want to commit:
 #   - outputs/results.csv (the rolling leaderboard)
 #   - outputs/pred_xx.csv (final deliverable)
+#   - outputs/eda/* (EDA charts that feed into the report)
 # Anything else under outputs/ is local only.
 outputs/*
 !outputs/.gitkeep
 !outputs/results.csv
 !outputs/pred_xx.csv
+!outputs/eda/
+!outputs/eda/**
 
 # --- Secrets --------------------------------------------------------------
 .env
