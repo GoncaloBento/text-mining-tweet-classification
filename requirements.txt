@@ -1,0 +1,45 @@
+# Core scientific stack
+numpy>=1.26,<2.0
+pandas>=2.1
+scipy>=1.11
+
+# Classical ML
+scikit-learn>=1.4
+xgboost>=2.0
+imbalanced-learn>=0.12
+
+# NLP preprocessing
+nltk>=3.8.1
+regex>=2023.12.25
+
+# EDA / plotting
+matplotlib>=3.8
+seaborn>=0.13
+wordcloud>=1.9
+
+# Word embeddings
+gensim>=4.3.2
+
+# Transformers stack
+transformers>=4.40
+datasets>=2.18
+tokenizers>=0.19
+sentencepiece>=0.2
+accelerate>=0.27
+# Install torch separately if you need a specific CUDA build:
+#   https://pytorch.org/get-started/locally/
+torch>=2.2
+
+# Decoder extra / agent (Extra Challenges)
+langchain>=0.2
+langchain-community>=0.2
+
+# Notebook + dev hygiene
+jupyter>=1.0
+ipykernel>=6.29
+ipywidgets>=8.1
+tqdm>=4.66
+
+# Repo hygiene (TM-003)
+nbstripout>=0.7
+pre-commit>=3.7

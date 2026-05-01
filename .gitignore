@@ -1,0 +1,75 @@
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+build/
+dist/
+.eggs/
+.installed.cfg
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Virtual envs ---------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# --- Jupyter --------------------------------------------------------------
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# --- IDEs / editors -------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS -------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Project artefacts ----------------------------------------------------
+# Raw data — drop train.csv / test.csv here locally, do not commit
+data/*.csv
+
+# Trained model checkpoints
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+*.pkl
+*.joblib
+models/
+
+# Logs and HF cache
+*.log
+logs/
+wandb/
+.cache/huggingface/
+~/.cache/huggingface/
+
+# Outputs we *do* want to commit:
+#   - outputs/results.csv (the rolling leaderboard)
+#   - outputs/pred_xx.csv (final deliverable)
+# Anything else under outputs/ is local only.
+outputs/*
+!outputs/.gitkeep
+!outputs/results.csv
+!outputs/pred_xx.csv
+
+# --- Secrets --------------------------------------------------------------
+.env
+.env.local
+*.key
+*.pem
