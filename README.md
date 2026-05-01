@@ -4,10 +4,8 @@ NLP project for the Text Mining course at NOVA IMS. Goal: classify the market se
 
 ## Quick links
 
-- [`REQUIREMENTS.md`](REQUIREMENTS.md) — what the handout demands and how it's graded
-- [`DEVELOPMENT.md`](DEVELOPMENT.md) — 5-week development plan, roles, sprints
 - Notion kanban — `Nova IMS Projects → Text Mining`
-- Group: 4 members (assignments TBD)
+- Group: 4 members
 - **Internal deadline:** 2026-06-05 · **Hard deadline:** 2026-06-15
 
 ## Repository layout
@@ -31,12 +29,11 @@ NLP project for the Text Mining course at NOVA IMS. Goal: classify the market se
 │   ├── evaluate.py
 │   └── agent.py
 ├── outputs/
+│   ├── eda/              # EDA charts (committed)
 │   ├── results.csv       # rolling leaderboard of every model run
 │   └── pred_xx.csv       # final deliverable
 ├── report/
 │   └── report_xx.pdf
-├── REQUIREMENTS.md
-├── DEVELOPMENT.md
 └── README.md
 ```
 
@@ -57,11 +54,7 @@ source .venv/bin/activate
 # 3. install dependencies
 pip install -r requirements.txt
 
-# 4. enable nbstripout + pre-commit hooks (strips notebook outputs on commit)
-pre-commit install
-
-# 5. drop train.csv and test.csv into data/
-#    (sources: Project Corpora-20260429/)
+# 4. drop train.csv and test.csv into data/
 ```
 
 ## Daily workflow

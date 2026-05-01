@@ -39,7 +39,3 @@ jupyter>=1.0
 ipykernel>=6.29
 ipywidgets>=8.1
 tqdm>=4.66
-
-# Repo hygiene (TM-003)
-nbstripout>=0.7
-pre-commit>=3.7
