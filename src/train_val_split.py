@@ -3,8 +3,10 @@ from src.config import SEED
 from src.config import VAL_SIZE
 from src.config import K_Fold_n_splits
 
-#import needed variables
+#import needed libraries
 import pandas as pd
+
+#import needed functions
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedKFold
 
