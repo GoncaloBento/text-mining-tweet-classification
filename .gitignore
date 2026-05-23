@@ -76,3 +76,11 @@ outputs/*
 .env.local
 *.key
 *.pem
+
+# --- Project Guidelines & MCP Configuration --------------------------------
+*Guidelines*.pdf
+Project Guidelines - Text Mining 2025-2026 v2.pdf
+mcp-config.json
+.cursor/mcp.json
+.vscode/mcp.json
+
