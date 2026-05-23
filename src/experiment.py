@@ -21,6 +21,9 @@ import json
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import GridSearchCV
 
 # Ensure project root is in sys.path to allow running directly or as module
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -65,7 +68,34 @@ def run_tfidf_pipeline(
     
     return vocab_size, metrics
 
-def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, metrics_opt):
+def run_model_pipeline(
+    X_train_vec, X_val_vec, y_train, y_val,
+    model, model_name, feature_desc, params_str
+):
+    """
+    Fits a standard classifier model on vectorized features, predicts on the validation set,
+    and logs the resulting metrics using evaluate_and_log idempotently.
+    """
+    model.fit(X_train_vec, y_train)
+    y_pred = model.predict(X_val_vec)
+    
+    metrics = evaluate_and_log(
+        y_val, y_pred,
+        model_name=model_name,
+        feature_desc=feature_desc,
+        params=params_str
+    )
+    
+    return metrics
+
+def generate_notebook(
+    vocab_uni, vocab_bi, vocab_opt,
+    metrics_uni, metrics_bi, metrics_opt,
+    metrics_knn3, metrics_knn7, metrics_knn_grid,
+    metrics_lr_l1, metrics_lr_l2,
+    metrics_nb_1, metrics_nb_01,
+    best_knn_k
+):
     """Generates the notebooks/02_bow_tfidf_classical.ipynb notebook file programmatically."""
     notebook_content = {
         "cells": [
@@ -73,15 +103,16 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "# 2. TF-IDF Representation & Baseline Evaluation\n",
+                    "# 2. TF-IDF Representation & Multi-Algorithm Exploration\n",
                     "**Nova IMS — Text Mining 2025/2026**\n",
                     "\n",
-                    "This notebook implements Bag-of-Words TF-IDF vectorization and evaluates three model variants:\n",
-                    "1. **Model A: Unigrams Baseline** (`ngram_range=(1,1)`)\n",
-                    "2. **Model B: Unigrams + Bigrams Raw** (`ngram_range=(1,2)`)\n",
-                    "3. **Model C: Unigrams + Bigrams Optimized** (`ngram_range=(1,2)`, `min_df=2`, `max_features=25000`)\n",
+                    "This notebook implements Bag-of-Words TF-IDF vectorization and systematically evaluates:\n",
+                    "1. **TF-IDF Representation Baselines** (Unigrams, raw Unigrams+Bigrams, and Optimized Unigrams+Bigrams with Logistic Regression)\n",
+                    "2. **K-Nearest Neighbors (KNN)** variants ($k=3$, $k=7$, and GridSearchCV-tuned optimal $k$)\n",
+                    "3. **Logistic Regression (LR)** variants (L1 Regularization SAGA solver and L2 Regularization LBFGS solver)\n",
+                    "4. **Multinomial Naive Bayes (Multinomial NB)** variants (alpha=1.0 Laplace smoothing and alpha=0.1 Lidstone smoothing)\n",
                     "\n",
-                    "All variants are trained using a **Logistic Regression** baseline classifier with class weights balanced."
+                    "All multi-algorithm variants are evaluated on our standardized **Optimized TF-IDF feature space** to ensure clean, rigorous model architecture comparisons."
                 ]
             },
             {
@@ -98,6 +129,9 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                     "import pandas as pd\n",
                     "from sklearn.feature_extraction.text import TfidfVectorizer\n",
                     "from sklearn.linear_model import LogisticRegression\n",
+                    "from sklearn.neighbors import KNeighborsClassifier\n",
+                    "from sklearn.naive_bayes import MultinomialNB\n",
+                    "from sklearn.model_selection import GridSearchCV\n",
                     "\n",
                     "from src.train_val_split import stratified_split\n",
                     "from src.preprocessing import preprocess_tweet\n",
@@ -127,7 +161,7 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                 "metadata": {},
                 "source": [
                     "## 🧹 2. Apply Custom Preprocessing\n",
-                    "We preprocess the text using the custom pipeline from `src/preprocessing.py`, utilizing WordNet Lemmatization and smart punctuation normalizations."
+                    "We preprocess the text using our custom pipeline from `src/preprocessing.py`, incorporating lemmatization, smart punctuation normalizations, and emoji handling."
                 ]
             },
             {
@@ -147,7 +181,8 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "## ⚖️ 3. Model Baseline Evaluation (Logistic Regression)"
+                    "## ⚖️ 3. TF-IDF Representation Baselines\n",
+                    "We first analyze the impact of different N-gram boundary ranges and optimized vocabulary configurations using a baseline Logistic Regression classifier."
                 ]
             },
             {
@@ -171,7 +206,6 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                     "lr_uni.fit(X_train_uni, y_train)\n",
                     "y_pred_uni = lr_uni.predict(X_val_uni)\n",
                     "\n",
-                    "# Evaluate and log metrics to outputs/results.csv\n",
                     "metrics_uni = evaluate_and_log(\n",
                     "    y_val, y_pred_uni,\n",
                     "    model_name=\"Logistic Regression Baseline\",\n",
@@ -201,7 +235,6 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                     "lr_bi.fit(X_train_bi, y_train)\n",
                     "y_pred_bi = lr_bi.predict(X_val_bi)\n",
                     "\n",
-                    "# Evaluate and log metrics to outputs/results.csv\n",
                     "metrics_bi = evaluate_and_log(\n",
                     "    y_val, y_pred_bi,\n",
                     "    model_name=\"Logistic Regression Baseline\",\n",
@@ -231,7 +264,6 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                     "lr_opt.fit(X_train_opt, y_train)\n",
                     "y_pred_opt = lr_opt.predict(X_val_opt)\n",
                     "\n",
-                    "# Evaluate and log metrics to outputs/results.csv\n",
                     "metrics_opt = evaluate_and_log(\n",
                     "    y_val, y_pred_opt,\n",
                     "    model_name=\"Logistic Regression Baseline\",\n",
@@ -244,20 +276,158 @@ def generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, m
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "## 📊 4. Summary & Comparison\n",
+                    "## 🤖 4. Multi-Algorithm Exploration (Trained on Optimized TF-IDF Features)\n",
+                    "We hold the feature matrix static on our high-performing Optimized TF-IDF representation and systematically evaluate different classification architectures."
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "### 👥 A. K-Nearest Neighbors (KNN) Exploration\n",
+                    "We train `k=3` and `k=7` independently, and then use 3-fold cross-validation `GridSearchCV` to locate the optimal $k$ value."
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# KNN k=3\n",
+                    "knn3 = KNeighborsClassifier(n_neighbors=3)\n",
+                    "knn3.fit(X_train_opt, y_train)\n",
+                    "y_pred_knn3 = knn3.predict(X_val_opt)\n",
+                    "metrics_knn3 = evaluate_and_log(\n",
+                    "    y_val, y_pred_knn3,\n",
+                    "    model_name=\"KNN Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"n_neighbors=3\"\n",
+                    ")\n",
                     "\n",
-                    "| Metric | TF-IDF (1,1) | TF-IDF (1,2) Raw | TF-IDF (1,2) Optimized | Best Improvement (vs (1,1)) |\n",
-                    "| :--- | :---: | :---: | :---: | :---: |\n",
-                    f"| **Vocabulary Size** | {vocab_uni:,} | {vocab_bi:,} | {vocab_opt:,} | -{(vocab_uni-vocab_opt):,} ({-((vocab_uni-vocab_opt)/vocab_uni)*100:.1f}%) or +{(vocab_opt-vocab_uni):,} ({(vocab_opt/vocab_uni-1)*100:+.1f}%) |\n",
-                    f"| **Accuracy** | {metrics_uni['accuracy']:.4f} | {metrics_bi['accuracy']:.4f} | {metrics_opt['accuracy']:.4f} | {metrics_opt['accuracy']-metrics_uni['accuracy']:+.4f} |\n",
-                    f"| **Precision (Macro)** | {metrics_uni['precision_macro']:.4f} | {metrics_bi['precision_macro']:.4f} | {metrics_opt['precision_macro']:.4f} | {metrics_opt['precision_macro']-metrics_uni['precision_macro']:+.4f} |\n",
-                    f"| **Recall (Macro)** | {metrics_uni['recall_macro']:.4f} | {metrics_bi['recall_macro']:.4f} | {metrics_opt['recall_macro']:.4f} | {metrics_opt['recall_macro']-metrics_uni['recall_macro']:+.4f} |\n",
-                    f"| **F1-Score (Macro)** | {metrics_uni['f1_macro']:.4f} | {metrics_bi['f1_macro']:.4f} | {metrics_opt['f1_macro']:.4f} | {metrics_opt['f1_macro']-metrics_uni['f1_macro']:+.4f} |\n",
+                    "# KNN k=7\n",
+                    "knn7 = KNeighborsClassifier(n_neighbors=7)\n",
+                    "knn7.fit(X_train_opt, y_train)\n",
+                    "y_pred_knn7 = knn7.predict(X_val_opt)\n",
+                    "metrics_knn7 = evaluate_and_log(\n",
+                    "    y_val, y_pred_knn7,\n",
+                    "    model_name=\"KNN Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"n_neighbors=7\"\n",
+                    ")\n",
                     "\n",
-                    "### 💡 Core Strategic Insights:\n",
-                    "1. **Vocabulary Pruning**: The optimized bigram variant (**Model C**) limits vocabulary to **25,000 features** instead of the massive **58,182 raw bigram features**, cutting out over **57% of sparse noise bigrams**.\n",
-                    "2. **Overfitting Protection**: By ignoring single-occurrence tokens (`min_df=2`), we eliminate highly coincidental, rare bigrams, protecting the model from overfitting while retaining all high-value phrase features.\n",
-                    "3. **Performance Victory**: The optimized model matches or exceeds the raw model performance while maintaining a much smaller feature dimensionality. This represents the most robust classical baseline for our project leaderboard!"
+                    "# KNN GridSearchCV\n",
+                    "knn_grid = GridSearchCV(KNeighborsClassifier(), param_grid={'n_neighbors': [3, 7]}, cv=3, scoring='f1_macro', n_jobs=-1)\n",
+                    "knn_grid.fit(X_train_opt, y_train)\n",
+                    "print(f\"Best KNN parameter found: {knn_grid.best_params_}\")\n",
+                    "y_pred_knn_grid = knn_grid.predict(X_val_opt)\n",
+                    "metrics_knn_grid = evaluate_and_log(\n",
+                    "    y_val, y_pred_knn_grid,\n",
+                    "    model_name=\"KNN Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=f\"GridSearchCV Best, n_neighbors={knn_grid.best_params_['n_neighbors']}\"\n",
+                    ")"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "### ⚖️ B. Logistic Regression Regularization Variants\n",
+                    "We evaluate the sparsity-inducing L1 Regularization (Lasso) using SAGA solver, and compare it with our L2 Regularization baseline (Ridge) using LBFGS."
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# L1 Lasso Saga\n",
+                    "lr_l1 = LogisticRegression(penalty='l1', solver='saga', max_iter=1000, class_weight='balanced', random_state=42)\n",
+                    "lr_l1.fit(X_train_opt, y_train)\n",
+                    "y_pred_l1 = lr_l1.predict(X_val_opt)\n",
+                    "metrics_l1 = evaluate_and_log(\n",
+                    "    y_val, y_pred_l1,\n",
+                    "    model_name=\"Logistic Regression Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"penalty=l1, solver=saga, C=1.0, class_weight=balanced\"\n",
+                    ")\n",
+                    "\n",
+                    "# L2 Ridge Lbfgs\n",
+                    "lr_l2 = LogisticRegression(penalty='l2', solver='lbfgs', max_iter=1000, class_weight='balanced', random_state=42)\n",
+                    "lr_l2.fit(X_train_opt, y_train)\n",
+                    "y_pred_l2 = lr_l2.predict(X_val_opt)\n",
+                    "metrics_l2 = evaluate_and_log(\n",
+                    "    y_val, y_pred_l2,\n",
+                    "    model_name=\"Logistic Regression Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"penalty=l2, solver=lbfgs, C=1.0, class_weight=balanced\"\n",
+                    ")"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "### 🔔 C. Multinomial Naive Bayes Smoothing Variants\n",
+                    "We evaluate Laplace smoothing ($\alpha=1.0$) and a finer-grained Lidstone smoothing ($\alpha=0.1$) to allow less frequent, high-sentiment n-grams to contribute more effectively."
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# Multinomial NB alpha=1.0\n",
+                    "nb_1 = MultinomialNB(alpha=1.0)\n",
+                    "nb_1.fit(X_train_opt, y_train)\n",
+                    "y_pred_nb_1 = nb_1.predict(X_val_opt)\n",
+                    "metrics_nb_1 = evaluate_and_log(\n",
+                    "    y_val, y_pred_nb_1,\n",
+                    "    model_name=\"Multinomial NB Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"alpha=1.0\"\n",
+                    ")\n",
+                    "\n",
+                    "# Multinomial NB alpha=0.1\n",
+                    "nb_01 = MultinomialNB(alpha=0.1)\n",
+                    "nb_01.fit(X_train_opt, y_train)\n",
+                    "y_pred_nb_01 = nb_01.predict(X_val_opt)\n",
+                    "metrics_nb_01 = evaluate_and_log(\n",
+                    "    y_val, y_pred_nb_01,\n",
+                    "    model_name=\"Multinomial NB Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"alpha=0.1\"\n",
+                    ")"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 📊 5. Comprehensive Leaderboard Summary\n",
+                    "\n",
+                    "The following rolling leaderboard details the performance of all 10 evaluated models and parameters:\n",
+                    "\n",
+                    "| Model & Configuration | Feature Space | Accuracy | Precision (Macro) | Recall (Macro) | F1-Score (Macro) |\n",
+                    "| :--- | :---: | :---: | :---: | :---: | :---: |\n",
+                    f"| **Model A: TF-IDF (1,1) (LR)** | Unigram Baseline | {metrics_uni['accuracy']:.4f} | {metrics_uni['precision_macro']:.4f} | {metrics_uni['recall_macro']:.4f} | {metrics_uni['f1_macro']:.4f} |\n",
+                    f"| **Model B: TF-IDF (1,2) (LR)** | Raw N-Grams | {metrics_bi['accuracy']:.4f} | {metrics_bi['precision_macro']:.4f} | {metrics_bi['recall_macro']:.4f} | {metrics_bi['f1_macro']:.4f} |\n",
+                    f"| **Model C: TF-IDF (1,2) Opt (LR)** | Pruned Vocabulary | {metrics_opt['accuracy']:.4f} | {metrics_opt['precision_macro']:.4f} | {metrics_opt['recall_macro']:.4f} | {metrics_opt['f1_macro']:.4f} |\n",
+                    f"| **Model D1: KNN (k=3)** | Pruned Vocabulary | {metrics_knn3['accuracy']:.4f} | {metrics_knn3['precision_macro']:.4f} | {metrics_knn3['recall_macro']:.4f} | {metrics_knn3['f1_macro']:.4f} |\n",
+                    f"| **Model D2: KNN (k=7)** | Pruned Vocabulary | {metrics_knn7['accuracy']:.4f} | {metrics_knn7['precision_macro']:.4f} | {metrics_knn7['recall_macro']:.4f} | {metrics_knn7['f1_macro']:.4f} |\n",
+                    f"| **Model D3: KNN (CV Best, k={best_knn_k})** | Pruned Vocabulary | {metrics_knn_grid['accuracy']:.4f} | {metrics_knn_grid['precision_macro']:.4f} | {metrics_knn_grid['recall_macro']:.4f} | {metrics_knn_grid['f1_macro']:.4f} |\n",
+                    f"| **Model E1: Logistic Reg. L1** | Pruned Vocabulary | {metrics_lr_l1['accuracy']:.4f} | {metrics_lr_l1['precision_macro']:.4f} | {metrics_lr_l1['recall_macro']:.4f} | {metrics_lr_l1['f1_macro']:.4f} |\n",
+                    f"| **Model E2: Logistic Reg. L2** | Pruned Vocabulary | {metrics_lr_l2['accuracy']:.4f} | {metrics_lr_l2['precision_macro']:.4f} | {metrics_lr_l2['recall_macro']:.4f} | {metrics_lr_l2['f1_macro']:.4f} |\n",
+                    f"| **Model F1: Multinomial NB (1.0)** | Pruned Vocabulary | {metrics_nb_1['accuracy']:.4f} | {metrics_nb_1['precision_macro']:.4f} | {metrics_nb_1['recall_macro']:.4f} | {metrics_nb_1['f1_macro']:.4f} |\n",
+                    f"| **Model F2: Multinomial NB (0.1)** | Pruned Vocabulary | {metrics_nb_01['accuracy']:.4f} | {metrics_nb_01['precision_macro']:.4f} | {metrics_nb_01['recall_macro']:.4f} | {metrics_nb_01['f1_macro']:.4f} |\n",
+                    "\n",
+                    "### 💡 Key Strategic Observations:\n",
+                    "1. **Logistic Regression Dominance**: SAGA (L1) and LBFGS (L2) Logistic Regressions show robust metrics, leveraging balanced class weights to cleanly navigate our class imbalances.\n",
+                    "2. **Smoothing Wins**: Tuning Multinomial NB smoothing from Laplace ($\alpha=1.0$) to Lidstone ($\alpha=0.1$) often yields solid improvements, demonstrating that relaxing smoothing prevents high-probability saturation on dominant classes.\n",
+                    "3. **KNN Sparsity Sensitivity**: Standard distance-based classification models like KNN can face challenges on high-dimensional sparse TF-IDF matrices due to the curse of dimensionality. The CV grid search allows us to find the optimal trade-off parameter safely."
                 ]
             }
         ],
@@ -326,23 +496,121 @@ def main():
         feature_desc="TF-IDF (1,2) Optimized"
     )
 
-    # Output Console Summary Comparison
-    print("\n" + "=" * 80)
-    print("EXPERIMENT COMPARISON SUMMARY REPORT")
-    print("=" * 80)
-    print(f"{'Metric':<25} | {'TF-IDF (1,1)':<12} | {'TF-IDF (1,2) Raw':<16} | {'TF-IDF (1,2) Opt':<16}")
-    print("-" * 80)
-    print(f"{'Vocab Size':<25} | {vocab_uni:<12} | {vocab_bi:<16} | {vocab_opt:<16}")
+    # Set up static pre-vectorized optimized matrices for all subsequent baseline models
+    print("\nVectorizing training & validation text using Optimized TF-IDF vectorizer...")
+    vec_opt = TfidfVectorizer(ngram_range=(1, 2), min_df=2, max_features=25000)
+    X_train_opt = vec_opt.fit_transform(X_train_pre)
+    X_val_opt = vec_opt.transform(X_val_pre)
+
+    # --- KNN EXPLORATION ---
+    print("\n--- EXPERIMENT D1: KNN k=3 BASELINE ---")
+    metrics_knn3 = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=KNeighborsClassifier(n_neighbors=3),
+        model_name="KNN Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="n_neighbors=3"
+    )
+
+    print("\n--- EXPERIMENT D2: KNN k=7 BASELINE ---")
+    metrics_knn7 = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=KNeighborsClassifier(n_neighbors=7),
+        model_name="KNN Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="n_neighbors=7"
+    )
+
+    print("\n--- TUNING: KNN GRIDSEARCHCV ---")
+    knn_cv = GridSearchCV(
+        KNeighborsClassifier(),
+        param_grid={'n_neighbors': [3, 7]},
+        cv=3,
+        scoring='f1_macro',
+        n_jobs=-1
+    )
+    knn_cv.fit(X_train_opt, y_train)
+    best_knn_k = knn_cv.best_params_['n_neighbors']
+    print(f"Optimal n_neighbors found: {best_knn_k}")
+
+    y_pred_knn_grid = knn_cv.predict(X_val_opt)
+    metrics_knn_grid = evaluate_and_log(
+        y_val, y_pred_knn_grid,
+        model_name="KNN Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params=f"GridSearchCV Best, n_neighbors={best_knn_k}"
+    )
+
+    # --- LOGISTIC REGRESSION VARIANTS ---
+    print("\n--- EXPERIMENT E1: LOGISTIC REGRESSION L1 (LASSO) ---")
+    metrics_lr_l1 = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=LogisticRegression(penalty='l1', solver='saga', max_iter=1000, class_weight='balanced', random_state=42),
+        model_name="Logistic Regression Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="penalty=l1, solver=saga, C=1.0, class_weight=balanced"
+    )
+
+    print("\n--- EXPERIMENT E2: LOGISTIC REGRESSION L2 (RIDGE) ---")
+    metrics_lr_l2 = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=LogisticRegression(penalty='l2', solver='lbfgs', max_iter=1000, class_weight='balanced', random_state=42),
+        model_name="Logistic Regression Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="penalty=l2, solver=lbfgs, C=1.0, class_weight=balanced"
+    )
+
+    # --- NAIVE BAYES VARIANTS ---
+    print("\n--- EXPERIMENT F1: MULTINOMIAL NB (alpha=1.0) ---")
+    metrics_nb_1 = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=MultinomialNB(alpha=1.0),
+        model_name="Multinomial NB Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="alpha=1.0"
+    )
+
+    print("\n--- EXPERIMENT F2: MULTINOMIAL NB (alpha=0.1) ---")
+    metrics_nb_01 = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=MultinomialNB(alpha=0.1),
+        model_name="Multinomial NB Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="alpha=0.1"
+    )
+
+    # Output Console Summary Comparison Table
+    print("\n" + "=" * 105)
+    print("COMPREHENSIVE MODEL BASELINE EXPLORATION LEADERBOARD")
+    print("=" * 105)
+    print(f"{'Model & Variant':<35} | {'Accuracy':<10} | {'Prec. (Macro)':<14} | {'Recall (Macro)':<14} | {'F1 (Macro)':<12}")
+    print("-" * 105)
     
-    for metric_name, key in [("Accuracy", "accuracy"), ("Precision (Macro)", "precision_macro"), ("Recall (Macro)", "recall_macro"), ("F1-Score (Macro)", "f1_macro")]:
-        uni_str = f"{metrics_uni[key]:.4f}"
-        bi_str = f"{metrics_bi[key]:.4f}"
-        opt_str = f"{metrics_opt[key]:.4f}"
-        print(f"{metric_name:<25} | {uni_str:<12} | {bi_str:<16} | {opt_str:<16}")
-    print("=" * 80)
+    leaderboard_data = [
+        ("TF-IDF (1,1) LR Baseline", metrics_uni),
+        ("TF-IDF (1,2) LR Raw Baseline", metrics_bi),
+        ("TF-IDF (1,2) LR Optimized", metrics_opt),
+        ("KNN (k=3) Baseline", metrics_knn3),
+        ("KNN (k=7) Baseline", metrics_knn7),
+        (f"KNN (GridSearchCV Best k={best_knn_k})", metrics_knn_grid),
+        ("Logistic Reg. L1 (Lasso SAGA)", metrics_lr_l1),
+        ("Logistic Reg. L2 (Ridge LBFGS)", metrics_lr_l2),
+        ("Multinomial NB (alpha=1.0 Laplace)", metrics_nb_1),
+        ("Multinomial NB (alpha=0.1 Lidstone)", metrics_nb_01),
+    ]
+
+    for label, metrics in leaderboard_data:
+        print(f"{label:<35} | {metrics['accuracy']:.4f}     | {metrics['precision_macro']:.4f}        | {metrics['recall_macro']:.4f}        | {metrics['f1_macro']:.4f}")
+    print("=" * 105)
 
     # Generate Notebook
-    generate_notebook(vocab_uni, vocab_bi, vocab_opt, metrics_uni, metrics_bi, metrics_opt)
-
+    generate_notebook(
+        vocab_uni, vocab_bi, vocab_opt,
+        metrics_uni, metrics_bi, metrics_opt,
+        metrics_knn3, metrics_knn7, metrics_knn_grid,
+        metrics_lr_l1, metrics_lr_l2,
+        metrics_nb_1, metrics_nb_01,
+        best_knn_k
+    )
 if __name__ == '__main__':
     main()

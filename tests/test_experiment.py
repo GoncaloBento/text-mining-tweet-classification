@@ -14,7 +14,7 @@ import unittest
 import pandas as pd
 from sklearn.datasets import make_classification
 
-from src.experiment import run_tfidf_pipeline
+from src.experiment import run_tfidf_pipeline, run_model_pipeline
 from src.evaluate import log_model_run, RESULTS_CSV_PATH, compute_metrics
 
 class TestExperimentPipeline(unittest.TestCase):
@@ -65,6 +65,29 @@ class TestExperimentPipeline(unittest.TestCase):
         )
         
         self.assertGreater(vocab_size, 0)
+        self.assertIn("accuracy", metrics)
+        self.assertIn("f1_macro", metrics)
+        self.assertIsInstance(metrics["accuracy"], float)
+
+    def test_run_model_pipeline(self):
+        """Test that the general run_model_pipeline helper trains and evaluates a model successfully."""
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.neighbors import KNeighborsClassifier
+        
+        # Vectorize
+        vec = TfidfVectorizer()
+        X_train_vec = vec.fit_transform(self.X_train)
+        X_val_vec = vec.transform(self.X_val)
+        
+        # Run general model pipeline
+        metrics = run_model_pipeline(
+            X_train_vec, X_val_vec, self.y_train, self.y_val,
+            model=KNeighborsClassifier(n_neighbors=3),
+            model_name="Test KNN",
+            feature_desc="Test Space",
+            params_str="n_neighbors=3"
+        )
+        
         self.assertIn("accuracy", metrics)
         self.assertIn("f1_macro", metrics)
         self.assertIsInstance(metrics["accuracy"], float)
