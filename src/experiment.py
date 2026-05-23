@@ -22,6 +22,11 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 
+# Ensure project root is in sys.path to allow running directly or as module
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 # Import custom src modules
 from src.train_val_split import stratified_split
 from src.preprocessing import preprocess_tweet

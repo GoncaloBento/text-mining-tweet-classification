@@ -1,5 +1,8 @@
-timestamp,owner,features,model,hyperparams,val_acc,val_p_macro,val_r_macro,val_f1_macro,val_f1_per_class,notes
+timestamp,model_name,feature_description,accuracy,precision_macro,recall_macro,f1_macro,parameters
 2026-05-23 17:22:39,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"max_iter=1000, class_weight='balanced', random_state=42"
 2026-05-23 17:22:40,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"max_iter=1000, class_weight='balanced', random_state=42"
 2026-05-23 17:23:24,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"max_iter=1000, class_weight='balanced', random_state=42"
 2026-05-23 17:23:25,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"max_iter=1000, class_weight='balanced', random_state=42"
+2026-05-23 17:34:08,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"ngram_range=(1, 1), min_df=1, max_features=None"
+2026-05-23 17:34:10,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"ngram_range=(1, 2), min_df=1, max_features=None"
+2026-05-23 17:34:10,Logistic Regression Baseline,"TF-IDF (1,2) Optimized",0.7810,0.7041,0.7201,0.7113,"ngram_range=(1, 2), min_df=2, max_features=25000"
