@@ -7,6 +7,7 @@ src/evaluate.py
 Evaluation utilities for the Text Mining sentiment models.
 Implements unified scoring (Recall, Precision, Accuracy, F1-Score)
 and logs all model runs to outputs/results.csv for rolling leaderboard.
+Includes IDEMPOTENT logging to avoid duplicate rows for the same run.
 """
 
 import os
@@ -32,17 +33,18 @@ def compute_metrics(y_true, y_pred) -> dict:
 
 def log_model_run(model_name: str, feature_desc: str, metrics: dict, params: str = ""):
     """
-    Logs a model run to outputs/results.csv. Creates the file and headers if it doesn't exist.
+    Logs a model run to outputs/results.csv in an IDEMPOTENT way.
+    If a run with the same model_name, feature_description, and parameters already exists,
+    it updates the metrics and timestamp of that existing row instead of appending.
     """
     os.makedirs(os.path.dirname(RESULTS_CSV_PATH), exist_ok=True)
     
-    file_exists = os.path.exists(RESULTS_CSV_PATH)
     headers = [
         "timestamp", "model_name", "feature_description", 
         "accuracy", "precision_macro", "recall_macro", "f1_macro", "parameters"
     ]
     
-    row = {
+    new_row = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "model_name": model_name,
         "feature_description": feature_desc,
@@ -53,18 +55,52 @@ def log_model_run(model_name: str, feature_desc: str, metrics: dict, params: str
         "parameters": params
     }
     
-    with open(RESULTS_CSV_PATH, mode='a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
-        if not file_exists or os.path.getsize(RESULTS_CSV_PATH) == 0:
-            writer.writeheader()
-        writer.writerow(row)
+    existing_rows = []
+    updated = False
+    
+    # Read existing rows if file exists
+    if os.path.exists(RESULTS_CSV_PATH) and os.path.getsize(RESULTS_CSV_PATH) > 0:
+        try:
+            with open(RESULTS_CSV_PATH, mode='r', newline='', encoding='utf-8') as f:
+                reader = csv.DictWriter(f, fieldnames=headers)
+                # Read rows (skipping header row)
+                raw_reader = csv.reader(f)
+                header_row = next(raw_reader, None)
+                if header_row:
+                    for r in raw_reader:
+                        if len(r) == len(headers):
+                            row_dict = dict(zip(headers, r))
+                            # Check for unique run match
+                            if (row_dict["model_name"] == model_name and 
+                                row_dict["feature_description"] == feature_desc and 
+                                row_dict["parameters"] == params):
+                                # Update existing row
+                                existing_rows.append(new_row)
+                                updated = True
+                            else:
+                                existing_rows.append(row_dict)
+        except Exception as e:
+            print(f"[WARNING] Error reading leaderboard CSV: {str(e)}. Resetting leaderboard file.")
+            existing_rows = []
+            
+    if not updated:
+        existing_rows.append(new_row)
         
-    print(f"[LOGGED] Model run added to {RESULTS_CSV_PATH} successfully!")
+    # Write back all rows
+    with open(RESULTS_CSV_PATH, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(existing_rows)
+        
+    if updated:
+        print(f"[LOGGED] Idempotent Update: Overwrote existing run in {RESULTS_CSV_PATH} successfully!")
+    else:
+        print(f"[LOGGED] Added new run to {RESULTS_CSV_PATH} successfully!")
 
 def evaluate_and_log(y_true, y_pred, model_name: str, feature_desc: str, params: str = "") -> dict:
     """
     Evaluates model predictions, prints classification report & confusion matrix,
-    and logs metrics to outputs/results.csv.
+    and logs metrics to outputs/results.csv in an idempotent way.
     """
     metrics = compute_metrics(y_true, y_pred)
     
