@@ -91,6 +91,46 @@ class TestExperimentPipeline(unittest.TestCase):
         self.assertIn("accuracy", metrics)
         self.assertIn("f1_macro", metrics)
         self.assertIsInstance(metrics["accuracy"], float)
+    def test_run_new_models(self):
+        """Test that MLP, Random Forest, and XGBoost run_model_pipeline executes successfully."""
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.neural_network import MLPClassifier
+        from sklearn.ensemble import RandomForestClassifier
+        from xgboost import XGBClassifier
+        
+        vec = TfidfVectorizer()
+        X_train_vec = vec.fit_transform(self.X_train)
+        X_val_vec = vec.transform(self.X_val)
+        
+        # MLP test
+        metrics_mlp = run_model_pipeline(
+            X_train_vec, X_val_vec, self.y_train, self.y_val,
+            model=MLPClassifier(hidden_layer_sizes=(10,), max_iter=10, random_state=42),
+            model_name="Test MLP",
+            feature_desc="Test Space",
+            params_str="hidden_layers=10"
+        )
+        self.assertIn("accuracy", metrics_mlp)
+        
+        # RF test
+        metrics_rf = run_model_pipeline(
+            X_train_vec, X_val_vec, self.y_train, self.y_val,
+            model=RandomForestClassifier(n_estimators=10, max_depth=3, random_state=42, n_jobs=-1),
+            model_name="Test RF",
+            feature_desc="Test Space",
+            params_str="n_estimators=10"
+        )
+        self.assertIn("accuracy", metrics_rf)
+        
+        # XGB test
+        metrics_xgb = run_model_pipeline(
+            X_train_vec, X_val_vec, self.y_train, self.y_val,
+            model=XGBClassifier(max_depth=2, n_estimators=10, random_state=42, n_jobs=-1),
+            model_name="Test XGB",
+            feature_desc="Test Space",
+            params_str="max_depth=2"
+        )
+        self.assertIn("accuracy", metrics_xgb)
 
     def test_logging_idempotence(self):
         """Test that log_model_run is fully idempotent and does not create duplicate rows."""

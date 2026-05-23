@@ -24,6 +24,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import GridSearchCV
+from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 
 # Ensure project root is in sys.path to allow running directly or as module
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -94,6 +97,9 @@ def generate_notebook(
     metrics_knn3, metrics_knn7, metrics_knn_grid,
     metrics_lr_l1, metrics_lr_l2,
     metrics_nb_1, metrics_nb_01,
+    metrics_mlp_shallow, metrics_mlp_deep,
+    metrics_rf_shallow, metrics_rf_deep,
+    metrics_xgb_shallow, metrics_xgb_deep,
     best_knn_k
 ):
     """Generates the notebooks/02_bow_tfidf_classical.ipynb notebook file programmatically."""
@@ -103,7 +109,7 @@ def generate_notebook(
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "# 2. TF-IDF Representation & Multi-Algorithm Exploration\n",
+                    "# 2. TF-IDF Representation & Comprehensive Multi-Algorithm Exploration\n",
                     "**Nova IMS — Text Mining 2025/2026**\n",
                     "\n",
                     "This notebook implements Bag-of-Words TF-IDF vectorization and systematically evaluates:\n",
@@ -111,6 +117,9 @@ def generate_notebook(
                     "2. **K-Nearest Neighbors (KNN)** variants ($k=3$, $k=7$, and GridSearchCV-tuned optimal $k$)\n",
                     "3. **Logistic Regression (LR)** variants (L1 Regularization SAGA solver and L2 Regularization LBFGS solver)\n",
                     "4. **Multinomial Naive Bayes (Multinomial NB)** variants (alpha=1.0 Laplace smoothing and alpha=0.1 Lidstone smoothing)\n",
+                    "5. **Multi-Layer Perceptron (MLP)** neural networks (shallow vs deep layers & learning rate adjustments)\n",
+                    "6. **Random Forest (RF)** ensemble variants (shallow vs deep maximum depths)\n",
+                    "7. **XGBoost (XGB)** gradient boosting trees (differing depths & learning rates)\n",
                     "\n",
                     "All multi-algorithm variants are evaluated on our standardized **Optimized TF-IDF feature space** to ensure clean, rigorous model architecture comparisons."
                 ]
@@ -132,6 +141,9 @@ def generate_notebook(
                     "from sklearn.neighbors import KNeighborsClassifier\n",
                     "from sklearn.naive_bayes import MultinomialNB\n",
                     "from sklearn.model_selection import GridSearchCV\n",
+                    "from sklearn.neural_network import MLPClassifier\n",
+                    "from sklearn.ensemble import RandomForestClassifier\n",
+                    "from xgboost import XGBClassifier\n",
                     "\n",
                     "from src.train_val_split import stratified_split\n",
                     "from src.preprocessing import preprocess_tweet\n",
@@ -182,7 +194,7 @@ def generate_notebook(
                 "metadata": {},
                 "source": [
                     "## ⚖️ 3. TF-IDF Representation Baselines\n",
-                    "We first analyze the impact of different N-gram boundary ranges and optimized vocabulary configurations using a baseline Logistic Regression classifier."
+                    "We first analyze the N-gram boundaries using Logistic Regression classifiers."
                 ]
             },
             {
@@ -277,15 +289,14 @@ def generate_notebook(
                 "metadata": {},
                 "source": [
                     "## 🤖 4. Multi-Algorithm Exploration (Trained on Optimized TF-IDF Features)\n",
-                    "We hold the feature matrix static on our high-performing Optimized TF-IDF representation and systematically evaluate different classification architectures."
+                    "All subsequent models are trained on the pre-vectorized optimized feature spaces: `X_train_opt` and `X_val_opt`."
                 ]
             },
             {
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "### 👥 A. K-Nearest Neighbors (KNN) Exploration\n",
-                    "We train `k=3` and `k=7` independently, and then use 3-fold cross-validation `GridSearchCV` to locate the optimal $k$ value."
+                    "### 👥 A. K-Nearest Neighbors (KNN) Exploration"
                 ]
             },
             {
@@ -333,8 +344,7 @@ def generate_notebook(
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "### ⚖️ B. Logistic Regression Regularization Variants\n",
-                    "We evaluate the sparsity-inducing L1 Regularization (Lasso) using SAGA solver, and compare it with our L2 Regularization baseline (Ridge) using LBFGS."
+                    "### ⚖️ B. Logistic Regression Regularization Variants"
                 ]
             },
             {
@@ -370,8 +380,7 @@ def generate_notebook(
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "### 🔔 C. Multinomial Naive Bayes Smoothing Variants\n",
-                    "We evaluate Laplace smoothing ($\alpha=1.0$) and a finer-grained Lidstone smoothing ($\alpha=0.1$) to allow less frequent, high-sentiment n-grams to contribute more effectively."
+                    "### 🔔 C. Multinomial Naive Bayes Smoothing Variants"
                 ]
             },
             {
@@ -407,11 +416,119 @@ def generate_notebook(
                 "cell_type": "markdown",
                 "metadata": {},
                 "source": [
-                    "## 📊 5. Comprehensive Leaderboard Summary\n",
+                    "### 🧠 D. Multi-Layer Perceptron (MLP) Neural Network Exploration"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# MLP Shallow & Fast\n",
+                    "mlp_shallow = MLPClassifier(hidden_layer_sizes=(100,), learning_rate_init=0.01, early_stopping=True, random_state=42)\n",
+                    "mlp_shallow.fit(X_train_opt, y_train)\n",
+                    "y_pred_mlp_s = mlp_shallow.predict(X_val_opt)\n",
+                    "metrics_mlp_shallow = evaluate_and_log(\n",
+                    "    y_val, y_pred_mlp_s,\n",
+                    "    model_name=\"MLP Classifier\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"hidden_layer_sizes=(100,), learning_rate_init=0.01, early_stopping=True\"\n",
+                    ")\n",
                     "\n",
-                    "The following rolling leaderboard details the performance of all 10 evaluated models and parameters:\n",
+                    "# MLP Deep & Regularized\n",
+                    "mlp_deep = MLPClassifier(hidden_layer_sizes=(100, 50), learning_rate_init=0.001, early_stopping=True, random_state=42)\n",
+                    "mlp_deep.fit(X_train_opt, y_train)\n",
+                    "y_pred_mlp_d = mlp_deep.predict(X_val_opt)\n",
+                    "metrics_mlp_deep = evaluate_and_log(\n",
+                    "    y_val, y_pred_mlp_d,\n",
+                    "    model_name=\"MLP Classifier\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"hidden_layer_sizes=(100, 50), learning_rate_init=0.001, early_stopping=True\"\n",
+                    ")"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "### 🌲 E. Random Forest Ensemble Exploration"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# Random Forest Shallow\n",
+                    "rf_shallow = RandomForestClassifier(n_estimators=100, max_depth=10, class_weight='balanced', random_state=42, n_jobs=-1)\n",
+                    "rf_shallow.fit(X_train_opt, y_train)\n",
+                    "y_pred_rf_s = rf_shallow.predict(X_val_opt)\n",
+                    "metrics_rf_shallow = evaluate_and_log(\n",
+                    "    y_val, y_pred_rf_s,\n",
+                    "    model_name=\"Random Forest Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"n_estimators=100, max_depth=10, class_weight=balanced\"\n",
+                    ")\n",
                     "\n",
-                    "| Model & Configuration | Feature Space | Accuracy | Precision (Macro) | Recall (Macro) | F1-Score (Macro) |\n",
+                    "# Random Forest Deep\n",
+                    "rf_deep = RandomForestClassifier(n_estimators=200, max_depth=20, class_weight='balanced', random_state=42, n_jobs=-1)\n",
+                    "rf_deep.fit(X_train_opt, y_train)\n",
+                    "y_pred_rf_d = rf_deep.predict(X_val_opt)\n",
+                    "metrics_rf_deep = evaluate_and_log(\n",
+                    "    y_val, y_pred_rf_d,\n",
+                    "    model_name=\"Random Forest Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"n_estimators=200, max_depth=20, class_weight=balanced\"\n",
+                    ")"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "### 🚀 F. XGBoost Gradient Boosting Exploration"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# XGBoost Conservative Depth\n",
+                    "xgb_shallow = XGBClassifier(max_depth=3, learning_rate=0.1, n_estimators=150, random_state=42, n_jobs=-1)\n",
+                    "xgb_shallow.fit(X_train_opt, y_train)\n",
+                    "y_pred_xgb_s = xgb_shallow.predict(X_val_opt)\n",
+                    "metrics_xgb_shallow = evaluate_and_log(\n",
+                    "    y_val, y_pred_xgb_s,\n",
+                    "    model_name=\"XGBoost Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"max_depth=3, learning_rate=0.1, n_estimators=150\"\n",
+                    ")\n",
+                    "\n",
+                    "# XGBoost Aggressive Depth\n",
+                    "xgb_deep = XGBClassifier(max_depth=6, learning_rate=0.05, n_estimators=200, random_state=42, n_jobs=-1)\n",
+                    "xgb_deep.fit(X_train_opt, y_train)\n",
+                    "y_pred_xgb_d = xgb_deep.predict(X_val_opt)\n",
+                    "metrics_xgb_deep = evaluate_and_log(\n",
+                    "    y_val, y_pred_xgb_d,\n",
+                    "    model_name=\"XGBoost Baseline\",\n",
+                    "    feature_desc=\"TF-IDF (1,2) Optimized\",\n",
+                    "    params=\"max_depth=6, learning_rate=0.05, n_estimators=200\"\n",
+                    ")"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 📊 5. Comprehensive Exploration Leaderboard Summary\n",
+                    "\n",
+                    "The following rolling leaderboard details the performance of all 16 evaluated configurations:\n",
+                    "\n",
+                    "| Model & Variant | Feature Space | Accuracy | Precision (Macro) | Recall (Macro) | F1-Score (Macro) |\n",
                     "| :--- | :---: | :---: | :---: | :---: | :---: |\n",
                     f"| **Model A: TF-IDF (1,1) (LR)** | Unigram Baseline | {metrics_uni['accuracy']:.4f} | {metrics_uni['precision_macro']:.4f} | {metrics_uni['recall_macro']:.4f} | {metrics_uni['f1_macro']:.4f} |\n",
                     f"| **Model B: TF-IDF (1,2) (LR)** | Raw N-Grams | {metrics_bi['accuracy']:.4f} | {metrics_bi['precision_macro']:.4f} | {metrics_bi['recall_macro']:.4f} | {metrics_bi['f1_macro']:.4f} |\n",
@@ -423,11 +540,17 @@ def generate_notebook(
                     f"| **Model E2: Logistic Reg. L2** | Pruned Vocabulary | {metrics_lr_l2['accuracy']:.4f} | {metrics_lr_l2['precision_macro']:.4f} | {metrics_lr_l2['recall_macro']:.4f} | {metrics_lr_l2['f1_macro']:.4f} |\n",
                     f"| **Model F1: Multinomial NB (1.0)** | Pruned Vocabulary | {metrics_nb_1['accuracy']:.4f} | {metrics_nb_1['precision_macro']:.4f} | {metrics_nb_1['recall_macro']:.4f} | {metrics_nb_1['f1_macro']:.4f} |\n",
                     f"| **Model F2: Multinomial NB (0.1)** | Pruned Vocabulary | {metrics_nb_01['accuracy']:.4f} | {metrics_nb_01['precision_macro']:.4f} | {metrics_nb_01['recall_macro']:.4f} | {metrics_nb_01['f1_macro']:.4f} |\n",
+                    f"| **Model G1: MLP (Shallow)** | Pruned Vocabulary | {metrics_mlp_shallow['accuracy']:.4f} | {metrics_mlp_shallow['precision_macro']:.4f} | {metrics_mlp_shallow['recall_macro']:.4f} | {metrics_mlp_shallow['f1_macro']:.4f} |\n",
+                    f"| **Model G2: MLP (Deep)** | Pruned Vocabulary | {metrics_mlp_deep['accuracy']:.4f} | {metrics_mlp_deep['precision_macro']:.4f} | {metrics_mlp_deep['recall_macro']:.4f} | {metrics_mlp_deep['f1_macro']:.4f} |\n",
+                    f"| **Model H1: Random Forest (Shallow)** | Pruned Vocabulary | {metrics_rf_shallow['accuracy']:.4f} | {metrics_rf_shallow['precision_macro']:.4f} | {metrics_rf_shallow['recall_macro']:.4f} | {metrics_rf_shallow['f1_macro']:.4f} |\n",
+                    f"| **Model H2: Random Forest (Deep)** | Pruned Vocabulary | {metrics_rf_deep['accuracy']:.4f} | {metrics_rf_deep['precision_macro']:.4f} | {metrics_rf_deep['recall_macro']:.4f} | {metrics_rf_deep['f1_macro']:.4f} |\n",
+                    f"| **Model I1: XGBoost (Depth=3)** | Pruned Vocabulary | {metrics_xgb_shallow['accuracy']:.4f} | {metrics_xgb_shallow['precision_macro']:.4f} | {metrics_xgb_shallow['recall_macro']:.4f} | {metrics_xgb_shallow['f1_macro']:.4f} |\n",
+                    f"| **Model I2: XGBoost (Depth=6)** | Pruned Vocabulary | {metrics_xgb_deep['accuracy']:.4f} | {metrics_xgb_deep['precision_macro']:.4f} | {metrics_xgb_deep['recall_macro']:.4f} | {metrics_xgb_deep['f1_macro']:.4f} |\n",
                     "\n",
                     "### 💡 Key Strategic Observations:\n",
-                    "1. **Logistic Regression Dominance**: SAGA (L1) and LBFGS (L2) Logistic Regressions show robust metrics, leveraging balanced class weights to cleanly navigate our class imbalances.\n",
-                    "2. **Smoothing Wins**: Tuning Multinomial NB smoothing from Laplace ($\alpha=1.0$) to Lidstone ($\alpha=0.1$) often yields solid improvements, demonstrating that relaxing smoothing prevents high-probability saturation on dominant classes.\n",
-                    "3. **KNN Sparsity Sensitivity**: Standard distance-based classification models like KNN can face challenges on high-dimensional sparse TF-IDF matrices due to the curse of dimensionality. The CV grid search allows us to find the optimal trade-off parameter safely."
+                    "1. **Tree-Based Models & Sparsity**: Ensembles like Random Forest and XGBoost require careful depth configurations to navigate highly sparse text bag-of-words dimensions efficiently.\n",
+                    "2. **Neural Architectures**: MLPs offer strong non-linear boundary learning but can require early stopping safeguards to limit validation loss decay.\n",
+                    "3. **Automatic Selection**: Using our automated autotuning script (`src/autotune.py`), any agent can parse these exact validation scores and dynamically compile optimal predictions on the full test sets."
                 ]
             }
         ],
@@ -579,9 +702,66 @@ def main():
         params_str="alpha=0.1"
     )
 
+    # --- MLP NEURAL NETWORK EXPLORATION ---
+    print("\n--- EXPERIMENT G1: MLP (SHALLOW) ---")
+    metrics_mlp_shallow = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=MLPClassifier(hidden_layer_sizes=(100,), learning_rate_init=0.01, early_stopping=True, random_state=42),
+        model_name="MLP Classifier",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="hidden_layer_sizes=(100,), learning_rate_init=0.01, early_stopping=True"
+    )
+
+    print("\n--- EXPERIMENT G2: MLP (DEEP) ---")
+    metrics_mlp_deep = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=MLPClassifier(hidden_layer_sizes=(100, 50), learning_rate_init=0.001, early_stopping=True, random_state=42),
+        model_name="MLP Classifier",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="hidden_layer_sizes=(100, 50), learning_rate_init=0.001, early_stopping=True"
+    )
+
+    # --- RANDOM FOREST ENSEMBLE ---
+    print("\n--- EXPERIMENT H1: RANDOM FOREST (SHALLOW) ---")
+    metrics_rf_shallow = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=RandomForestClassifier(n_estimators=100, max_depth=10, class_weight='balanced', random_state=42, n_jobs=-1),
+        model_name="Random Forest Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="n_estimators=100, max_depth=10, class_weight=balanced"
+    )
+
+    print("\n--- EXPERIMENT H2: RANDOM FOREST (DEEP) ---")
+    metrics_rf_deep = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=RandomForestClassifier(n_estimators=200, max_depth=20, class_weight='balanced', random_state=42, n_jobs=-1),
+        model_name="Random Forest Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="n_estimators=200, max_depth=20, class_weight=balanced"
+    )
+
+    # --- XGBOOST GRADIENT BOOSTING ---
+    print("\n--- EXPERIMENT I1: XGBOOST (max_depth=3, lr=0.1) ---")
+    metrics_xgb_shallow = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=XGBClassifier(max_depth=3, learning_rate=0.1, n_estimators=150, random_state=42, n_jobs=-1),
+        model_name="XGBoost Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="max_depth=3, learning_rate=0.1, n_estimators=150"
+    )
+
+    print("\n--- EXPERIMENT I2: XGBOOST (max_depth=6, lr=0.05) ---")
+    metrics_xgb_deep = run_model_pipeline(
+        X_train_opt, X_val_opt, y_train, y_val,
+        model=XGBClassifier(max_depth=6, learning_rate=0.05, n_estimators=200, random_state=42, n_jobs=-1),
+        model_name="XGBoost Baseline",
+        feature_desc="TF-IDF (1,2) Optimized",
+        params_str="max_depth=6, learning_rate=0.05, n_estimators=200"
+    )
+
     # Output Console Summary Comparison Table
     print("\n" + "=" * 105)
-    print("COMPREHENSIVE MODEL BASELINE EXPLORATION LEADERBOARD")
+    print("COMPREHENSIVE BASELINE EXPLORATION LEADERBOARD")
     print("=" * 105)
     print(f"{'Model & Variant':<35} | {'Accuracy':<10} | {'Prec. (Macro)':<14} | {'Recall (Macro)':<14} | {'F1 (Macro)':<12}")
     print("-" * 105)
@@ -597,6 +777,12 @@ def main():
         ("Logistic Reg. L2 (Ridge LBFGS)", metrics_lr_l2),
         ("Multinomial NB (alpha=1.0 Laplace)", metrics_nb_1),
         ("Multinomial NB (alpha=0.1 Lidstone)", metrics_nb_01),
+        ("MLP Shallow (hidden_layers=100)", metrics_mlp_shallow),
+        ("MLP Deep (hidden_layers=100,50)", metrics_mlp_deep),
+        ("Random Forest Shallow (depth=10)", metrics_rf_shallow),
+        ("Random Forest Deep (depth=20)", metrics_rf_deep),
+        ("XGBoost Shallow (depth=3, lr=0.1)", metrics_xgb_shallow),
+        ("XGBoost Deep (depth=6, lr=0.05)", metrics_xgb_deep),
     ]
 
     for label, metrics in leaderboard_data:
@@ -610,6 +796,9 @@ def main():
         metrics_knn3, metrics_knn7, metrics_knn_grid,
         metrics_lr_l1, metrics_lr_l2,
         metrics_nb_1, metrics_nb_01,
+        metrics_mlp_shallow, metrics_mlp_deep,
+        metrics_rf_shallow, metrics_rf_deep,
+        metrics_xgb_shallow, metrics_xgb_deep,
         best_knn_k
     )
 if __name__ == '__main__':
