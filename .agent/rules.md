@@ -91,6 +91,13 @@ Run this script to automatically extract and save unigram CountVectorizer (BoW) 
   python src/features.py
   ```
 
+### 💨 H. Baseline Smoke Test & Unified Evaluation (`src/baseline_smoke_test.py` & `src/evaluate.py`)
+* **`src/baseline_smoke_test.py`**: Runs a simple majority-class smoke test baseline, producing predictions saved under `outputs/Baseline_Smoke_Test/`.
+  ```bash
+  python src/baseline_smoke_test.py
+  ```
+* **`src/evaluate.py`**: Central evaluation framework. Computes accuracy, macro recall, precision, and F1 metrics, displaying confusion matrices and classification reports. It provides a robust, idempotent leaderboard logging engine that supports multiple teammate signatures cleanly while resolving potential column-shifting bugs.
+
 ---
 
 ## 🧪 3. Running Automated Unit Tests
@@ -104,6 +111,9 @@ Ensure the preprocessing pipeline, experiment loggers, and vector pooling system
   ```bash
   # Preprocessing pipeline tests
   python -m unittest tests/test_preprocessing.py
+  
+  # Sparse matrix feature vectorization tests
+  python -m unittest tests/test_features.py
   
   # Idempotent experiment logging tests
   python -m unittest tests/test_experiment.py

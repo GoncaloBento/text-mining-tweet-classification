@@ -84,3 +84,7 @@ mcp-config.json
 .cursor/mcp.json
 .vscode/mcp.json
 
+# --- Scratch files --------------------------------------------------------
+scratch/
+
+

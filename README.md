@@ -24,10 +24,17 @@ NLP project for the Text Mining course at NOVA IMS. Goal: classify the market se
 │   ├── tm_tests_xx.ipynb
 │   └── tm_final_xx.ipynb
 ├── src/
-│   ├── preprocessing.py
-│   ├── features.py
-│   ├── evaluate.py
-│   └── agent.py
+│   ├── __init__.py       # Python package marker
+│   ├── config.py         # Global seed and configurations
+│   ├── train_val_split.py# Stratified dataset train/val splitting
+│   ├── preprocessing.py  # Tweet preprocessing pipeline
+│   ├── features.py       # Sparse Count & TF-IDF vectorizers (.npz)
+│   ├── word_embeddings.py# Word2Vec and GloVe pooling comparison
+│   ├── evaluate.py       # Unified leaderboard evaluation utils
+│   ├── baseline_smoke_test.py # Simple majority smoke baseline
+│   ├── experiment.py     # Main classical ML classifier orchestrator
+│   ├── autotune.py       # Automated hyperparameter retrainer & Moodle inference
+│   └── error_analysis.py # Deep error profiling and reporting
 ├── outputs/
 │   ├── eda/              # EDA charts (committed)
 │   ├── results.csv       # rolling leaderboard of every model run
