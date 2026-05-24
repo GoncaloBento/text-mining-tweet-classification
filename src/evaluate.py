@@ -80,7 +80,7 @@ def log_model_run(
         "recall_macro": f"{metrics['recall_macro']:.4f}",
         "f1_macro": f"{metrics['f1_macro']:.4f}",
         "parameters": params,
-        "f1_per_class": str(metrics["f1_per_class"]),
+        "f1_per_class": str(metrics["f1_per_class"]) if "f1_per_class" in metrics else "",
         "notes": notes
     }
     
