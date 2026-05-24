@@ -1,24 +1,24 @@
-timestamp,model_name,feature_description,accuracy,precision_macro,recall_macro,f1_macro,parameters
-2026-05-23 17:22:39,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"max_iter=1000, class_weight='balanced', random_state=42"
-2026-05-23 17:22:40,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"max_iter=1000, class_weight='balanced', random_state=42"
-2026-05-23 17:23:24,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"max_iter=1000, class_weight='balanced', random_state=42"
-2026-05-23 17:23:25,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"max_iter=1000, class_weight='balanced', random_state=42"
-2026-05-23 17:46:23,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"ngram_range=(1, 1), min_df=1, max_features=None"
-2026-05-23 17:46:25,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"ngram_range=(1, 2), min_df=1, max_features=None"
-2026-05-23 17:46:25,Logistic Regression Baseline,"TF-IDF (1,2) Optimized",0.7810,0.7041,0.7201,0.7113,"ngram_range=(1, 2), min_df=2, max_features=25000"
-2026-05-23 17:46:26,KNN Baseline,"TF-IDF (1,2) Optimized",0.6888,0.7305,0.4212,0.4247,n_neighbors=3
-2026-05-23 17:46:26,KNN Baseline,"TF-IDF (1,2) Optimized",0.6695,0.8276,0.3759,0.3463,n_neighbors=7
-2026-05-23 17:46:30,KNN Baseline,"TF-IDF (1,2) Optimized",0.6888,0.7305,0.4212,0.4247,"GridSearchCV Best, n_neighbors=3"
-2026-05-23 17:46:32,Logistic Regression Baseline,"TF-IDF (1,2) Optimized",0.7444,0.6601,0.6930,0.6733,"penalty=l1, solver=saga, C=1.0, class_weight=balanced"
-2026-05-23 17:46:33,Logistic Regression Baseline,"TF-IDF (1,2) Optimized",0.7810,0.7041,0.7201,0.7113,"penalty=l2, solver=lbfgs, C=1.0, class_weight=balanced"
-2026-05-23 17:46:33,Multinomial NB Baseline,"TF-IDF (1,2) Optimized",0.7339,0.7944,0.5000,0.5316,alpha=1.0
-2026-05-23 17:46:33,Multinomial NB Baseline,"TF-IDF (1,2) Optimized",0.7863,0.7534,0.6415,0.6793,alpha=0.1
-2026-05-23 17:46:50,MLP Classifier,"TF-IDF (1,2) Optimized",0.7810,0.7443,0.6246,0.6621,"hidden_layer_sizes=(100,), learning_rate_init=0.01, early_stopping=True"
-2026-05-23 17:47:11,MLP Classifier,"TF-IDF (1,2) Optimized",0.7873,0.7366,0.6522,0.6830,"hidden_layer_sizes=(100, 50), learning_rate_init=0.001, early_stopping=True"
-2026-05-23 17:47:12,Random Forest Baseline,"TF-IDF (1,2) Optimized",0.7208,0.6379,0.6181,0.6244,"n_estimators=100, max_depth=10, class_weight=balanced"
-2026-05-23 17:47:12,Random Forest Baseline,"TF-IDF (1,2) Optimized",0.7528,0.6790,0.6447,0.6589,"n_estimators=200, max_depth=20, class_weight=balanced"
-2026-05-23 17:47:16,XGBoost Baseline,"TF-IDF (1,2) Optimized",0.7349,0.7863,0.5088,0.5478,"max_depth=3, learning_rate=0.1, n_estimators=150"
-2026-05-23 17:47:28,XGBoost Baseline,"TF-IDF (1,2) Optimized",0.7376,0.7682,0.5247,0.5659,"max_depth=6, learning_rate=0.05, n_estimators=200"
-2026-05-23 18:11:01,Logistic Regression Baseline,Word2Vec Mean Pooling,0.5055,0.4398,0.4572,0.4324,"vector_size=100, window=5, min_count=2, penalty=l2, class_weight=balanced"
-2026-05-23 18:11:01,Logistic Regression Baseline,GloVe-Twitter-100 Mean Pooling,0.6517,0.5679,0.6129,0.5790,"vector_size=100, pre-trained, penalty=l2, class_weight=balanced"
-2026-05-24 09:30:03,Logistic Regression Baseline,"BoW (Count) (1,1)",0.7737,0.6975,0.7012,0.6990,"ngram_range=(1, 1), min_df=1, max_features=None"
+timestamp,owner,model_name,feature_description,accuracy,precision_macro,recall_macro,f1_macro,parameters,f1_per_class,notes
+2026-05-23 17:22:39,Filipe,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"max_iter=1000, class_weight='balanced', random_state=42",,
+2026-05-23 17:22:40,Filipe,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"max_iter=1000, class_weight='balanced', random_state=42",,
+2026-05-23 17:23:24,Filipe,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"max_iter=1000, class_weight='balanced', random_state=42",,
+2026-05-23 17:23:25,Filipe,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"max_iter=1000, class_weight='balanced', random_state=42",,
+2026-05-23 17:46:23,Filipe,Logistic Regression Baseline,"TF-IDF (1,1)",0.7685,0.6914,0.7015,0.6957,"ngram_range=(1, 1), min_df=1, max_features=None",,
+2026-05-23 17:46:25,Filipe,Logistic Regression Baseline,"TF-IDF (1,2)",0.7795,0.7015,0.7048,0.7031,"ngram_range=(1, 2), min_df=1, max_features=None",,
+2026-05-23 17:46:25,Filipe,Logistic Regression Baseline,"TF-IDF (1,2) Optimized",0.781,0.7041,0.7201,0.7113,"ngram_range=(1, 2), min_df=2, max_features=25000",,
+2026-05-23 17:46:26,Filipe,KNN Baseline,"TF-IDF (1,2) Optimized",0.6888,0.7305,0.4212,0.4247,n_neighbors=3,,
+2026-05-23 17:46:26,Filipe,KNN Baseline,"TF-IDF (1,2) Optimized",0.6695,0.8276,0.3759,0.3463,n_neighbors=7,,
+2026-05-23 17:46:30,Filipe,KNN Baseline,"TF-IDF (1,2) Optimized",0.6888,0.7305,0.4212,0.4247,"GridSearchCV Best, n_neighbors=3",,
+2026-05-23 17:46:32,Filipe,Logistic Regression Baseline,"TF-IDF (1,2) Optimized",0.7444,0.6601,0.693,0.6733,"penalty=l1, solver=saga, C=1.0, class_weight=balanced",,
+2026-05-23 17:46:33,Filipe,Logistic Regression Baseline,"TF-IDF (1,2) Optimized",0.781,0.7041,0.7201,0.7113,"penalty=l2, solver=lbfgs, C=1.0, class_weight=balanced",,
+2026-05-23 17:46:33,Filipe,Multinomial NB Baseline,"TF-IDF (1,2) Optimized",0.7339,0.7944,0.5,0.5316,alpha=1.0,,
+2026-05-23 17:46:33,Filipe,Multinomial NB Baseline,"TF-IDF (1,2) Optimized",0.7863,0.7534,0.6415,0.6793,alpha=0.1,,
+2026-05-23 17:46:50,Filipe,MLP Classifier,"TF-IDF (1,2) Optimized",0.781,0.7443,0.6246,0.6621,"hidden_layer_sizes=(100,), learning_rate_init=0.01, early_stopping=True",,
+2026-05-23 17:47:11,Filipe,MLP Classifier,"TF-IDF (1,2) Optimized",0.7873,0.7366,0.6522,0.683,"hidden_layer_sizes=(100, 50), learning_rate_init=0.001, early_stopping=True",,
+2026-05-23 17:47:12,Filipe,Random Forest Baseline,"TF-IDF (1,2) Optimized",0.7208,0.6379,0.6181,0.6244,"n_estimators=100, max_depth=10, class_weight=balanced",,
+2026-05-23 17:47:12,Filipe,Random Forest Baseline,"TF-IDF (1,2) Optimized",0.7528,0.679,0.6447,0.6589,"n_estimators=200, max_depth=20, class_weight=balanced",,
+2026-05-23 17:47:16,Filipe,XGBoost Baseline,"TF-IDF (1,2) Optimized",0.7349,0.7863,0.5088,0.5478,"max_depth=3, learning_rate=0.1, n_estimators=150",,
+2026-05-23 17:47:28,Filipe,XGBoost Baseline,"TF-IDF (1,2) Optimized",0.7376,0.7682,0.5247,0.5659,"max_depth=6, learning_rate=0.05, n_estimators=200",,
+2026-05-23 18:11:01,Filipe,Logistic Regression Baseline,Word2Vec Mean Pooling,0.5055,0.4398,0.4572,0.4324,"vector_size=100, window=5, min_count=2, penalty=l2, class_weight=balanced",,
+2026-05-23 18:11:01,Filipe,Logistic Regression Baseline,GloVe-Twitter-100 Mean Pooling,0.6517,0.5679,0.6129,0.579,"vector_size=100, pre-trained, penalty=l2, class_weight=balanced",,
+2026-05-24 09:30:03,Filipe,Logistic Regression Baseline,"BoW (Count) (1,1)",0.7737,0.6975,0.7012,0.699,"ngram_range=(1, 1), min_df=1, max_features=None",,
