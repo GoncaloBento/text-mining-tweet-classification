@@ -21,3 +21,4 @@ timestamp,model_name,feature_description,accuracy,precision_macro,recall_macro,f
 2026-05-23 17:47:28,XGBoost Baseline,"TF-IDF (1,2) Optimized",0.7376,0.7682,0.5247,0.5659,"max_depth=6, learning_rate=0.05, n_estimators=200"
 2026-05-23 18:11:01,Logistic Regression Baseline,Word2Vec Mean Pooling,0.5055,0.4398,0.4572,0.4324,"vector_size=100, window=5, min_count=2, penalty=l2, class_weight=balanced"
 2026-05-23 18:11:01,Logistic Regression Baseline,GloVe-Twitter-100 Mean Pooling,0.6517,0.5679,0.6129,0.5790,"vector_size=100, pre-trained, penalty=l2, class_weight=balanced"
+2026-05-24 09:30:03,Logistic Regression Baseline,"BoW (Count) (1,1)",0.7737,0.6975,0.7012,0.6990,"ngram_range=(1, 1), min_df=1, max_features=None"

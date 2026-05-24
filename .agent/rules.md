@@ -49,27 +49,52 @@ Run this tool to clean financial tweets. It includes Unicode/punctuation normali
   Provide input JSON via stdin to `python src/preprocessing.py --json-input`.
 
 ### 🔬 C. Sentiment Classification Experiment Runner (`src/experiment.py`)
-Run this script to automatically train, evaluate, and compare Logistic Regression baselines using three different TF-IDF feature extractions:
-1. **Model A: TF-IDF Unigrams Baseline** (`ngram_range=(1,1)`)
-2. **Model B: TF-IDF Unigrams + Bigrams Raw** (`ngram_range=(1,2)`)
-3. **Model C: TF-IDF Unigrams + Bigrams Optimized** (`ngram_range=(1,2)`, `min_df=2`, `max_features=25000`)
+Run this script to automatically train, evaluate, and compare traditional ML configurations (KNN, Logistic Regression, Multinomial NB, MLP, RF, XGB) on the Optimized TF-IDF representation.
 
 * **Pipeline Automation**:
-  * Loads and splits data using `src/train_val_split.py`.
   * Preprocesses text using `src/preprocessing.py`.
-  * Evaluates and prints comparative metrics tables.
-  * Automatically programmatically generates/updates the formal `notebooks/02_bow_tfidf_classical.ipynb` Jupyter Notebook.
-* **Idempotence**:
-  The experiment runner logs all results to the rolling project leaderboard `outputs/results.csv` **idempotently**. Running the script multiple times with the same parameters will overwrite and update the existing row rather than appending duplicate rows.
+  * Logs all results to `outputs/results.csv` **idempotently**.
 * **Execution**:
   ```bash
   python src/experiment.py
   ```
 
+### ⚙️ D. Automated Hyperparameter Tuner & Predictor (`src/autotune.py`)
+Run this script to programmatically locate the champion classical classifier based on Macro F1, refit it on 100% of the training dataset to maximize knowledge utilization, and generate optimized final submissions in `outputs/pred_best.csv`.
+
+* **Execution**:
+  ```bash
+  python src/autotune.py
+  ```
+
+### 📊 E. Deep Sentiment Error Analysis Pipeline (`src/error_analysis.py`)
+Run this script to profile the structural failure modes of the champion classical baseline. It computes and saves the confusion matrix heatmap (`outputs/confusion_matrix.png`) and extracts the top 20 most confident/severe misclassifications per class to `outputs/misclassified_report.txt` (for humans) and `outputs/misclassified_analysis.json` (for agents).
+
+* **Execution**:
+  ```bash
+  python src/error_analysis.py
+  ```
+
+### 🧬 F. Word Embeddings Comparison Pipeline (`src/word_embeddings.py`)
+Run this script to automatically compare custom Word2Vec embeddings trained on our corpus against Stanford's pre-trained `glove-twitter-100` model. It computes unique and token Out-of-Vocabulary (OOV) statistics on the validation fold, vectorizes tweets using Mean Pooling, and trains baseline Logistic Regression classifiers, registering the outcomes in our leaderboard.
+
+* **Execution**:
+  ```bash
+  python src/word_embeddings.py
+  ```
+
+### 📊 G. Classical Feature Vectorization (`src/features.py`)
+Run this script to automatically extract and save unigram CountVectorizer (BoW) and TfidfVectorizer features. It runs the stratified split, applies full preprocessors, fits the vectorizers **strictly on training data only** to prevent data leakage, and exports the resulting sparse matrices in compressed `.npz` format to the `outputs/` folder.
+
+* **Execution**:
+  ```bash
+  python src/features.py
+  ```
+
 ---
 
 ## 🧪 3. Running Automated Unit Tests
-Ensure the preprocessing pipeline and the experiment logging system remain fully correct and functional. Run the dedicated unit testing suites automatically before merging or changing code:
+Ensure the preprocessing pipeline, experiment loggers, and vector pooling systems remain fully correct and functional. Run the dedicated unit testing suites automatically before merging or changing code:
 
 * **Run all tests inside the tests directory**:
   ```bash
@@ -82,7 +107,11 @@ Ensure the preprocessing pipeline and the experiment logging system remain fully
   
   # Idempotent experiment logging tests
   python -m unittest tests/test_experiment.py
+
+  # Word embeddings pooling and OOV rates tests
+  python -m unittest tests/test_word_embeddings.py
   ```
+
 
 ---
 

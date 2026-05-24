@@ -28,8 +28,10 @@ You are equipped with the following repository-scoped capabilities:
 
 * **Skill References**:
   - [sentiment_model_experiments.md](file:///c:/Users/filip/TextMining-Corpora/.agent/skills/sentiment_model_experiments.md)
+  - [feature_vectorization.md](file:///c:/Users/filip/TextMining-Corpora/.agent/skills/feature_vectorization.md)
   - [unit_testing_validation.md](file:///c:/Users/filip/TextMining-Corpora/.agent/skills/unit_testing_validation.md)
 * **Underlying CLI Tools**:
+  - Execute feature vectorization: `python src/features.py`
   - Execute baseline experiments: `python src/experiment.py`
   - Execute automated tests: `python -m unittest discover tests/`
 
