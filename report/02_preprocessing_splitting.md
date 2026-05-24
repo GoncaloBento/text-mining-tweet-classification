@@ -90,6 +90,8 @@ We executed this feature-extraction pipeline via [features.py](file:///c:/Users/
   2. `outputs/X_val_bow.npz` (BoW features for the validation set, shape: `(1909, 12575)`)
   3. `outputs/X_train_tfidf_uni.npz` (TF-IDF features for the training set, shape: `(7634, 12575)`)
   4. `outputs/X_val_tfidf_uni.npz` (TF-IDF features for the validation set, shape: `(1909, 12575)`)
+  5. `outputs/X_train_tfidf_opt.npz` (Optimized TF-IDF unigrams+bigrams training set, shape: `(7634, 11028)`)
+  6. `outputs/X_val_tfidf_opt.npz` (Optimized TF-IDF unigrams+bigrams validation set, shape: `(1909, 11028)`)
 
 ### 📈 2.4.3. Baseline Classification Performance Comparison
 To evaluate the predictive power of these unigram vectors, we trained our standard regularized Logistic Regression classifier with balanced class weights. The empirical classification results on the validation fold are compared below:

@@ -7,6 +7,7 @@ src/features.py
 Feature engineering module. Implements:
 1. CountVectorizer (Bag of Words unigrams)
 2. TfidfVectorizer (TF-IDF unigrams)
+3. TfidfVectorizer (Optimized TF-IDF unigrams+bigrams)
 Fits vectorizers strictly on the training set and saves the sparse matrices
 as .npz files inside the outputs/ directory.
 """
@@ -80,6 +81,20 @@ def extract_and_save_features():
     sp.save_npz(train_tfidf_path, X_train_tfidf)
     sp.save_npz(val_tfidf_path, X_val_tfidf)
     print(f"Saved TF-IDF sparse matrices to:\n  - {train_tfidf_path}\n  - {val_tfidf_path}")
+
+    # 6. Optimized TF-IDF unigrams+bigrams
+    print("\n--- Fitting TfidfVectorizer (Optimized TF-IDF unigrams+bigrams) ---")
+    tfidf_opt_vec = TfidfVectorizer(ngram_range=(1, 2), min_df=2, max_features=25000)
+    X_train_tfidf_opt = tfidf_opt_vec.fit_transform(X_train_pre)
+    X_val_tfidf_opt = tfidf_opt_vec.transform(X_val_pre)
+    print(f"Optimized TF-IDF Vocabulary Size: {len(tfidf_opt_vec.vocabulary_)}")
+
+    # Save Optimized TF-IDF matrices
+    train_tfidf_opt_path = os.path.join(outputs_dir, "X_train_tfidf_opt.npz")
+    val_tfidf_opt_path = os.path.join(outputs_dir, "X_val_tfidf_opt.npz")
+    sp.save_npz(train_tfidf_opt_path, X_train_tfidf_opt)
+    sp.save_npz(val_tfidf_opt_path, X_val_tfidf_opt)
+    print(f"Saved Optimized TF-IDF sparse matrices to:\n  - {train_tfidf_opt_path}\n  - {val_tfidf_opt_path}")
 
     print("=" * 60)
     print("FEATURE EXTRACTION PIPELINE COMPLETED SUCCESSFULLY!")
