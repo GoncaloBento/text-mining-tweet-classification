@@ -1,21 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-TM-022: HF Trainer skeleton — tokeniser, dataloaders, and Trainer config.
-Validates the full pipeline on 500 samples and caches tokenised datasets to disk.
-"""
-
-import sys
-import os
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if project_root not in sys.path:
-    sys.path.append(project_root)
-
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import torch
 from datasets import Dataset
 from transformers import (
     DistilBertTokenizerFast,
@@ -24,20 +10,56 @@ from transformers import (
     Trainer,
     DataCollatorWithPadding,
 )
-from sklearn.metrics import accuracy_score, f1_score
 
-from src.train_val_split import stratified_split
+from src.preprocessing import stratified_split
 from src.evaluate import log_model_run, compute_metrics
-from src.config import SEED
+from src.config import (
+    SEED, TRAIN_CSV_PATH as DATA_PATH, NUM_LABELS, LABEL2ID, ID2LABEL,
+    DISTILBERT_MODEL_NAME as MODEL_NAME,
+    DISTILBERT_CACHE_DIR, DISTILBERT_CHECKPOINT_DIR,
+    DISTILBERT_N_SAMPLES_SPIKE as N_SAMPLES_SPIKE,
+)
+from src.utils import log_info, log_success
 
 
-MODEL_NAME = "distilbert-base-uncased"
-DATA_PATH = "data/train.csv"
-CACHE_DIR = Path("outputs/distilbert_cache")
-NUM_LABELS = 3  # Bearish=0, Bullish=1, Neutral=2
-LABEL2ID = {"Bearish": 0, "Bullish": 1, "Neutral": 2}
-ID2LABEL = {0: "Bearish", 1: "Bullish", 2: "Neutral"}
+# ── Environment helpers (absorbed from distilbert_spike.py) ──────────────────
 
+def check_gpu() -> str:
+    if torch.cuda.is_available():
+        log_info(f"CUDA available — {torch.cuda.get_device_name(0)}")
+        return "cuda"
+    log_info("No CUDA device found — using CPU")
+    return "cpu"
+
+
+def load_tokenizer() -> DistilBertTokenizerFast:
+    log_info(f"Loading tokenizer: {MODEL_NAME}")
+    tokenizer = DistilBertTokenizerFast.from_pretrained(MODEL_NAME)
+    log_info(f"Vocab size: {tokenizer.vocab_size}")
+    return tokenizer
+
+
+def tokenize_samples(tokenizer: DistilBertTokenizerFast, texts: list[str]) -> dict:
+    return tokenizer(texts, padding=True, truncation=True, max_length=128, return_tensors="pt")
+
+
+def run_spike() -> None:
+    """Quick environment smoke-test: tokenises a sample of tweets and checks GPU."""
+    device = check_gpu()
+    tokenizer = load_tokenizer()
+
+    sample_texts = pd.read_csv(DATA_PATH)["text"].head(N_SAMPLES_SPIKE).tolist()
+    log_info(f"Loaded {len(sample_texts)} samples from {DATA_PATH}")
+
+    encoded = {k: v.to(device) for k, v in tokenize_samples(tokenizer, sample_texts).items()}
+
+    log_info(f"input_ids shape        : {tuple(encoded['input_ids'].shape)}")
+    log_info(f"attention_mask shape   : {tuple(encoded['attention_mask'].shape)}")
+    log_info(f"Sample tokens (row 0)  : {encoded['input_ids'][0, :10].tolist()} ...")
+    log_success("Spike complete — environment is ready for DistilBERT fine-tuning.")
+
+
+# ── Training pipeline ─────────────────────────────────────────────────────────
 
 def load_data(n_samples: int | None = None) -> pd.DataFrame:
     df = pd.read_csv(DATA_PATH)
@@ -55,28 +77,26 @@ def build_hf_datasets(
     cache_dir: Path,
 ) -> tuple[Dataset, Dataset]:
     cache_dir.mkdir(parents=True, exist_ok=True)
-    train_cache = cache_dir / "train"
-    val_cache = cache_dir / "val"
 
     def _tokenize(batch):
         return tokenizer(batch["text"], truncation=True, max_length=128)
 
     def _build(texts, labels, cache_path):
         if cache_path.exists():
-            print(f"[CACHE] Loading from {cache_path}")
+            log_info(f"Loading dataset from cache: {cache_path}")
             return Dataset.load_from_disk(str(cache_path))
         ds = Dataset.from_dict({"text": texts.tolist(), "label": labels.tolist()})
         ds = ds.map(_tokenize, batched=True, remove_columns=["text"])
         ds.save_to_disk(str(cache_path))
-        print(f"[CACHE] Saved to {cache_path}")
+        log_info(f"Dataset cached to: {cache_path}")
         return ds
 
-    train_ds = _build(X_train, y_train, train_cache)
-    val_ds = _build(X_val, y_val, val_cache)
+    train_ds = _build(X_train, y_train, cache_dir / "train")
+    val_ds   = _build(X_val,   y_val,   cache_dir / "val")
     return train_ds, val_ds
 
 
-def make_compute_metrics(owner: str = "La Feria", notes: str = ""):
+def make_compute_metrics(owner: str = "", notes: str = ""):
     def _compute_metrics(eval_pred):
         logits, labels = eval_pred
         preds = np.argmax(logits, axis=-1)
@@ -89,10 +109,7 @@ def make_compute_metrics(owner: str = "La Feria", notes: str = ""):
             owner=owner,
             notes=notes,
         )
-        return {
-            "accuracy": metrics["accuracy"],
-            "f1_macro": metrics["f1_macro"],
-        }
+        return {"accuracy": metrics["accuracy"], "f1_macro": metrics["f1_macro"]}
     return _compute_metrics
 
 
@@ -101,20 +118,21 @@ def build_trainer(
     tokenizer: DistilBertTokenizerFast,
     train_ds: Dataset,
     val_ds: Dataset,
-    output_dir: str = "outputs/distilbert_checkpoints",
+    output_dir: str = None,
     learning_rate: float = 2e-5,
     per_device_batch_size: int = 16,
     num_epochs: int = 3,
+    owner: str = "",
     notes: str = "",
 ) -> Trainer:
     training_args = TrainingArguments(
-        output_dir=output_dir,
+        output_dir=output_dir or DISTILBERT_CHECKPOINT_DIR,
         num_train_epochs=num_epochs,
         per_device_train_batch_size=per_device_batch_size,
         per_device_eval_batch_size=per_device_batch_size,
         learning_rate=learning_rate,
         weight_decay=0.01,
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="f1_macro",
@@ -122,56 +140,40 @@ def build_trainer(
         logging_steps=50,
         report_to="none",
     )
-
-    collator = DataCollatorWithPadding(tokenizer=tokenizer)
-
     return Trainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        tokenizer=tokenizer,
-        data_collator=collator,
-        compute_metrics=make_compute_metrics(notes=notes),
+        processing_class=tokenizer,
+        data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
+        compute_metrics=make_compute_metrics(owner=owner, notes=notes),
     )
 
 
-def run_trainer(n_samples: int | None = 500, notes: str = "TM-022 skeleton validation") -> None:
-    print(f"[DATA] Loading {'all' if n_samples is None else n_samples} samples ...")
+def run_trainer(n_samples: int | None = 500, owner: str = "", notes: str = "") -> None:
+    log_info(f"Loading {'all' if n_samples is None else n_samples} samples ...")
     df = load_data(n_samples=n_samples)
     X_train, X_val, y_train, y_val = stratified_split(df)
-    print(f"[SPLIT] train={len(X_train)}, val={len(X_val)}")
+    log_info(f"Split — train={len(X_train)}, val={len(X_val)}")
 
-    print(f"[TOKENIZER] Loading {MODEL_NAME} ...")
-    tokenizer = DistilBertTokenizerFast.from_pretrained(MODEL_NAME)
+    tokenizer = load_tokenizer()
 
-    train_ds, val_ds = build_hf_datasets(
-        tokenizer, X_train, X_val, y_train, y_val, CACHE_DIR
-    )
-    print(f"[DATASET] train={len(train_ds)} rows, val={len(val_ds)} rows")
+    cache_dir = Path(DISTILBERT_CACHE_DIR)
+    train_ds, val_ds = build_hf_datasets(tokenizer, X_train, X_val, y_train, y_val, cache_dir)
+    log_info(f"Datasets — train={len(train_ds)} rows, val={len(val_ds)} rows")
 
-    print("[MODEL] Loading DistilBertForSequenceClassification ...")
+    log_info("Loading DistilBertForSequenceClassification ...")
     model = DistilBertForSequenceClassification.from_pretrained(
-        MODEL_NAME,
-        num_labels=NUM_LABELS,
-        id2label=ID2LABEL,
-        label2id=LABEL2ID,
+        MODEL_NAME, num_labels=NUM_LABELS, id2label=ID2LABEL, label2id=LABEL2ID,
     )
 
-    trainer = build_trainer(
-        model=model,
-        tokenizer=tokenizer,
-        train_ds=train_ds,
-        val_ds=val_ds,
-        notes=notes,
-    )
+    trainer = build_trainer(model=model, tokenizer=tokenizer,
+                            train_ds=train_ds, val_ds=val_ds,
+                            owner=owner, notes=notes)
 
-    print("[TRAIN] Starting training ...")
+    log_info("Starting training ...")
     trainer.train()
-    print("[EVAL] Final evaluation ...")
+    log_info("Running final evaluation ...")
     trainer.evaluate()
-    print("[OK] TM-022 complete.")
-
-
-if __name__ == "__main__":
-    run_trainer()
+    log_success("Training complete.")

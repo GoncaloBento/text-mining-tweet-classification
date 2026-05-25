@@ -1,70 +1,18 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-src/eda.py
-
-Exploratory Data Analysis (EDA) Tool for Finance Tweets.
-Designed as a modular library and an interactive command-line tool.
-Can be executed seamlessly by AI agents or human developers to analyze,
-visualize, and summarize dataset properties.
-"""
-
 import os
 import re
-import sys
-import argparse
-import json
 from collections import Counter
 import pandas as pd
 
-# Try to import plotting libraries gracefully
-try:
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    PLOTTING_AVAILABLE = True
-except ImportError:
-    PLOTTING_AVAILABLE = False
+from src.config import (
+    LABEL_NAMES, LABEL_PALETTE,
+    URL_PATTERN, MENTION_PATTERN, CASHTAG_PATTERN, HASHTAG_PATTERN,
+    DEFAULT_STOPWORDS,
+)
+import matplotlib.pyplot as plt
+import seaborn as sns
+from wordcloud import WordCloud
 
-# Try to import wordcloud gracefully
-try:
-    from wordcloud import WordCloud
-    WORDCLOUD_AVAILABLE = True
-except ImportError:
-    WORDCLOUD_AVAILABLE = False
-
-# --- Default Configs ---
-LABEL_NAMES = {0: "Bearish", 1: "Bullish", 2: "Neutral"}
-LABEL_PALETTE = {
-    "Bearish": "#E06666",  # Harmonic red
-    "Bullish": "#6AA84F",  # Harmonic green
-    "Neutral": "#4A90E2"   # Harmonic blue
-}
-
-# Regex Patterns for Analysis
-URL_PATTERN = re.compile(r'https?://\S+|www\.\S+')
-MENTION_PATTERN = re.compile(r'@\w+')
-CASHTAG_PATTERN = re.compile(r'\$\w+')
-HASHTAG_PATTERN = re.compile(r'#\w+')
-
-# Simple stopword list to use if NLTK is not fully loaded or for fast baseline
-DEFAULT_STOPWORDS = {
-    "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", 
-    "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", 
-    "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", 
-    "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", 
-    "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", 
-    "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", 
-    "for", "with", "about", "against", "between", "into", "through", "during", "before", 
-    "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", 
-    "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", 
-    "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", 
-    "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", 
-    "will", "just", "don", "should", "now", "d", "ll", "m", "o", "re", "ve", "y",
-    # Financial Noise
-    "rt", "amp", "co", "qt", "http", "https", "via", "stock", "stocks", "ticker", 
-    "tickers", "share", "shares"
-}
+from src.utils import log_success, log_warning
 
 # --- Core Analyzer Class ---
 
@@ -268,10 +216,6 @@ def save_eda_plots(train_analyzer: DatasetAnalyzer, output_dir: str = "outputs/e
     Generates and saves professional analytical figures under outputs/eda/.
     Requires matplotlib and seaborn. Skips gracefully if unavailable.
     """
-    if not PLOTTING_AVAILABLE:
-        print("[WARNING] Plotting packages (matplotlib/seaborn) not available. Skipping chart generation.")
-        return
-        
     os.makedirs(output_dir, exist_ok=True)
     df = train_analyzer.df
     
@@ -373,7 +317,7 @@ def save_eda_plots(train_analyzer: DatasetAnalyzer, output_dir: str = "outputs/e
         plt.savefig(os.path.join(output_dir, "top_words_by_class.png"), dpi=150)
         plt.close()
         
-    print(f"[SUCCESS] Visual charts saved perfectly under {output_dir}")
+    log_success(f"EDA plots saved to {output_dir}")
 
 # --- Output Formatters ---
 
@@ -469,56 +413,3 @@ def print_markdown_report(train_rpt: dict, test_rpt: dict = None):
             print(f"* **{cls_name}**: {word_list}")
     print()
 
-# --- Main Entry Point ---
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="Comprehensive EDA Analyzer for Text Mining Finance Tweets. Built as a tool to automate analysis."
-    )
-    parser.add_argument('--train-path', type=str, default='data/train.csv', help="Path to training set CSV file.")
-    parser.add_argument('--test-path', type=str, default='data/test.csv', help="Path to testing set CSV file.")
-    parser.add_argument('--format', type=str, choices=['text', 'markdown', 'json'], default='markdown',
-                        help="Format of the stdout console report.")
-    parser.add_argument('--save-plots', action='store_true', help="Generate and save analysis figures under outputs/eda/.")
-    parser.add_argument('--top-n', type=int, default=15, help="Number of top words to extract in analysis.")
-
-    args = parser.parse_args()
-
-    try:
-        # Load and analyze training set
-        train_analyzer = DatasetAnalyzer(args.train_path, name="Training Set")
-        train_report = train_analyzer.generate_full_report(top_n_words=args.top_n)
-        
-        # Load and analyze testing set
-        test_report = None
-        if os.path.exists(args.test_path):
-            test_analyzer = DatasetAnalyzer(args.test_path, name="Testing Set")
-            test_report = test_analyzer.generate_full_report(top_n_words=args.top_n)
-
-        # Output in selected format
-        if args.format == 'json':
-            full_json = {"train": train_report}
-            if test_report:
-                full_json["test"] = test_report
-            print(json.dumps(full_json, indent=2))
-        elif args.format == 'markdown':
-            print_markdown_report(train_report, test_report)
-        else:
-            # Simple text output fallback
-            print(f"=== EDA Overview for {args.train_path} ===")
-            print(f"Total Rows: {train_report['basic_stats']['total_rows']}")
-            print(f"Non-ASCII rate: {train_report['non_ascii']['non_ascii_percentage']:.2f}%")
-            if test_report:
-                print(f"=== EDA Overview for {args.test_path} ===")
-                print(f"Total Rows: {test_report['basic_stats']['total_rows']}")
-
-        # Save charts if requested
-        if args.save_plots:
-            save_eda_plots(train_analyzer)
-
-    except Exception as e:
-        if args.format == 'json':
-            print(json.dumps({"status": "error", "message": str(e)}))
-        else:
-            print(f"Error during EDA execution: {str(e)}", file=sys.stderr)
-        sys.exit(1)
