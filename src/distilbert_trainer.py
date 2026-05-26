@@ -14,7 +14,7 @@ from transformers import (
 from src.preprocessing import stratified_split
 from src.evaluate import log_model_run, compute_metrics
 from src.config import (
-    SEED, TRAIN_CSV_PATH as DATA_PATH, NUM_LABELS, LABEL2ID, ID2LABEL,
+    SEED, TRAIN_CSV_PATH as DATA_PATH, TEST_CSV_PATH, NUM_LABELS, LABEL2ID, ID2LABEL,
     DISTILBERT_MODEL_NAME as MODEL_NAME,
     DISTILBERT_CACHE_DIR, DISTILBERT_CHECKPOINT_DIR,
     DISTILBERT_N_SAMPLES_SPIKE as N_SAMPLES_SPIKE,
@@ -22,7 +22,7 @@ from src.config import (
 from src.utils import log_info, log_success
 
 
-# ── Environment helpers (absorbed from distilbert_spike.py) ──────────────────
+# ── Environment helpers ──────────────────────────────────────────────────────
 
 def check_gpu() -> str:
     if torch.cuda.is_available():
@@ -44,7 +44,6 @@ def tokenize_samples(tokenizer: DistilBertTokenizerFast, texts: list[str]) -> di
 
 
 def run_spike() -> None:
-    """Quick environment smoke-test: tokenises a sample of tweets and checks GPU."""
     device = check_gpu()
     tokenizer = load_tokenizer()
 
@@ -118,7 +117,7 @@ def build_trainer(
     tokenizer: DistilBertTokenizerFast,
     train_ds: Dataset,
     val_ds: Dataset,
-    output_dir: str = None,
+    output_dir: str | None = None,
     learning_rate: float = 2e-5,
     per_device_batch_size: int = 16,
     num_epochs: int = 3,
@@ -126,16 +125,19 @@ def build_trainer(
     notes: str = "",
 ) -> Trainer:
     training_args = TrainingArguments(
-        output_dir=output_dir or DISTILBERT_CHECKPOINT_DIR,
+        output_dir=output_dir or str(Path(DISTILBERT_CHECKPOINT_DIR) / MODEL_NAME.replace("/", "_")),
         num_train_epochs=num_epochs,
         per_device_train_batch_size=per_device_batch_size,
         per_device_eval_batch_size=per_device_batch_size,
         learning_rate=learning_rate,
         weight_decay=0.01,
+        warmup_ratio=0.1,
         eval_strategy="epoch",
         save_strategy="epoch",
+        save_total_limit=2,
         load_best_model_at_end=True,
         metric_for_best_model="f1_macro",
+        greater_is_better=True,
         seed=SEED,
         logging_steps=50,
         report_to="none",
@@ -151,7 +153,7 @@ def build_trainer(
     )
 
 
-def run_trainer(n_samples: int | None = 500, owner: str = "", notes: str = "") -> None:
+def run_trainer(n_samples: int | None = 500, owner: str = "", notes: str = "") -> Trainer:
     log_info(f"Loading {'all' if n_samples is None else n_samples} samples ...")
     df = load_data(n_samples=n_samples)
     X_train, X_val, y_train, y_val = stratified_split(df)
@@ -159,7 +161,10 @@ def run_trainer(n_samples: int | None = 500, owner: str = "", notes: str = "") -
 
     tokenizer = load_tokenizer()
 
-    cache_dir = Path(DISTILBERT_CACHE_DIR)
+    # Use a sample-size-specific cache dir so a 500-sample spike doesn't get
+    # served when we ask for the full dataset.
+    cache_suffix = "full" if n_samples is None else f"n{n_samples}"
+    cache_dir = Path(DISTILBERT_CACHE_DIR) / cache_suffix
     train_ds, val_ds = build_hf_datasets(tokenizer, X_train, X_val, y_train, y_val, cache_dir)
     log_info(f"Datasets — train={len(train_ds)} rows, val={len(val_ds)} rows")
 
@@ -177,3 +182,25 @@ def run_trainer(n_samples: int | None = 500, owner: str = "", notes: str = "") -
     log_info("Running final evaluation ...")
     trainer.evaluate()
     log_success("Training complete.")
+    return trainer
+
+
+def predict_test_set(
+    trainer: Trainer,
+    tokenizer: DistilBertTokenizerFast,
+    test_csv_path: str = TEST_CSV_PATH,
+) -> np.ndarray:
+    log_info(f"Loading test set from {test_csv_path}")
+    test_df = pd.read_csv(test_csv_path)
+    log_info(f"Test rows: {len(test_df)}")
+
+    def _tokenize(batch):
+        return tokenizer(batch["text"], truncation=True, max_length=128)
+
+    test_ds = Dataset.from_dict({"text": test_df["text"].tolist()})
+    test_ds = test_ds.map(_tokenize, batched=True, remove_columns=["text"])
+
+    preds = trainer.predict(test_ds)
+    labels = np.argmax(preds.predictions, axis=-1)
+    log_success(f"Generated {len(labels)} test predictions.")
+    return labels

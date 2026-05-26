@@ -30,6 +30,9 @@ DISTILBERT_N_SAMPLES_SPIKE = 200
 DISTILBERT_CACHE_DIR = "outputs/distilbert_cache"
 DISTILBERT_CHECKPOINT_DIR = "outputs/distilbert_checkpoints"
 
+# Qwen decoder
+QWEN_MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+
 # Feature matrix cache paths
 BOW_TRAIN_PATH       = "outputs/X_train_bow.npz"
 BOW_VAL_PATH         = "outputs/X_val_bow.npz"
