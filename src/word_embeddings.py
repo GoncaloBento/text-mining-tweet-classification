@@ -101,20 +101,72 @@ def main():
     X_train_tokens = X_train_raw.apply(lambda t: preprocess_tweet(t, return_str=False)).tolist()
     X_val_tokens = X_val_raw.apply(lambda t: preprocess_tweet(t, return_str=False)).tolist()
 
-    # 4. Train Custom Word2Vec Model
-    print("[INFO] Training custom Word2Vec model (size=100, window=5, min_count=2)...")
-    w2v_model = Word2Vec(
-        sentences=X_train_tokens,
-        vector_size=100,
-        window=5,
-        min_count=2,
-        seed=42,
-        workers=4
-    )
-    print("[SUCCESS] Custom Word2Vec model trained successfully!")
-    print(f"[INFO] Word2Vec Vocabulary Size: {len(w2v_model.wv.key_to_index)}")
+    # 4. Train Word2Vec models: CBOW vs Skip-Gram, 100 vs 200 dimensions
+    configs = [
+        {"name": "CBOW_100", "vector_size": 100, "sg": 0},
+        {"name": "SKIPGRAM_100", "vector_size": 100, "sg": 1},
+        {"name": "CBOW_200", "vector_size": 200, "sg": 0},
+        {"name": "SKIPGRAM_200", "vector_size": 200, "sg": 1},
+    ]
 
-    # 5. Load pre-trained GloVe Twitter Embeddings
+    models = {}
+
+    for config in configs:
+        print("\n" + "=" * 60)
+        print(f"[INFO] Training {config['name']}")
+        print("=" * 60)
+
+        model = Word2Vec(
+            sentences=X_train_tokens,
+            vector_size=config["vector_size"],
+            window=5,
+            min_count=2,
+            sg=config["sg"],
+            seed=42,
+            workers=4
+        )
+
+        models[config["name"]] = model
+
+        print(f"[SUCCESS] {config['name']} trained.")
+        print(f"[INFO] Vocabulary size: {len(model.wv.key_to_index)}")
+
+    # 5. Evaluate embeddings qualitatively with similar words
+    sanity_words = ["good", "bad", "love", "hate", "movie"]
+
+    similarity_results = []
+
+    for model_name, model in models.items():
+        print("\n" + "=" * 60)
+        print(f"SIMILAR WORDS - {model_name}")
+        print("=" * 60)
+
+        for word in sanity_words:
+            if word not in model.wv.key_to_index:
+                print(f"{word}: OOV")
+                continue
+
+            print(f"\nMost similar to '{word}':")
+
+            for similar_word, score in model.wv.most_similar(word, topn=10):
+                print(f"{similar_word:<15} {score:.4f}")
+
+                similarity_results.append({
+                    "model": model_name,
+                    "query_word": word,
+                    "similar_word": similar_word,
+                    "similarity": score
+                })
+
+    os.makedirs("outputs", exist_ok=True)
+
+    pd.DataFrame(similarity_results).to_csv(
+        "outputs/word2vec_similarity.csv",
+        index=False
+    )
+    
+    
+    # 6. Load pre-trained GloVe Twitter Embeddings
     print("[INFO] Loading pre-trained GloVe Twitter 100-dimensional embeddings...")
     print("[INFO] This might download up to 400MB if not cached locally...")
     try:
@@ -125,7 +177,7 @@ def main():
         print(f"[ERROR] Failed to load GloVe-Twitter-100 embeddings: {str(e)}")
         sys.exit(1)
 
-    # 6. Compute Out-of-Vocabulary (OOV) Statistics on Validation Fold
+    # 7. Compute Out-of-Vocabulary (OOV) Statistics on Validation Fold
     print("[INFO] Computing Out-of-Vocabulary (OOV) statistics on validation set...")
     w2v_uniq_oov, w2v_tok_oov, w2v_oov_words = calculate_oov(X_val_tokens, w2v_model)
     glove_uniq_oov, glove_tok_oov, glove_oov_words = calculate_oov(X_val_tokens, glove_model)
@@ -146,7 +198,7 @@ def main():
     print(list(glove_oov_words)[:15])
     print("-" * 60)
 
-    # 7. Vectorize Dataset via Mean Pooling
+    # 8. Vectorize Dataset via Mean Pooling
     print("[INFO] Creating mean pooled vector representations...")
     X_train_w2v = vectorize_corpus(X_train_tokens, w2v_model, 100)
     X_val_w2v = vectorize_corpus(X_val_tokens, w2v_model, 100)
@@ -154,7 +206,7 @@ def main():
     X_train_glove = vectorize_corpus(X_train_tokens, glove_model, 100)
     X_val_glove = vectorize_corpus(X_val_tokens, glove_model, 100)
 
-    # 8. Train and Evaluate Downstream Logistic Regression L2 on Custom Word2Vec
+    # 9. Train and Evaluate Downstream Logistic Regression L2 on Custom Word2Vec
     print("[INFO] Downstream Evaluation: Custom Word2Vec Mean Pooling + LR L2...")
     clf_w2v = LogisticRegression(penalty='l2', solver='lbfgs', max_iter=1000, class_weight='balanced', random_state=42)
     clf_w2v.fit(X_train_w2v, y_train)
@@ -167,7 +219,7 @@ def main():
         params="vector_size=100, window=5, min_count=2, penalty=l2, class_weight=balanced"
     )
 
-    # 9. Train and Evaluate Downstream Logistic Regression L2 on GloVe
+    # 10. Train and Evaluate Downstream Logistic Regression L2 on GloVe
     print("[INFO] Downstream Evaluation: GloVe-Twitter-100 Mean Pooling + LR L2...")
     clf_glove = LogisticRegression(penalty='l2', solver='lbfgs', max_iter=1000, class_weight='balanced', random_state=42)
     clf_glove.fit(X_train_glove, y_train)
