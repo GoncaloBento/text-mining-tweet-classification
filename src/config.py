@@ -39,6 +39,12 @@ ROBERTA_N_SAMPLES_SPIKE = 200
 ROBERTA_CACHE_DIR = "outputs/roberta_cache"
 ROBERTA_CHECKPOINT_DIR = "outputs/roberta_checkpoints"
 
+# FinBERT
+FINBERT_MODEL_NAME = "ProsusAI/finbert"
+FINBERT_N_SAMPLES_SPIKE = 200
+FINBERT_CACHE_DIR = "outputs/finbert_cache"
+FINBERT_CHECKPOINT_DIR = "outputs/finbert_checkpoints"
+
 # Feature matrix cache paths
 BOW_TRAIN_PATH       = "outputs/X_train_bow.npz"
 BOW_VAL_PATH         = "outputs/X_val_bow.npz"
