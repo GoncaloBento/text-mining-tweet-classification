@@ -36,14 +36,21 @@ def calculate_oov(tokenized_sentences: list, embedding_model) -> tuple[float, fl
     return len(oov_unique) / len(unique_tokens), len(oov_tokens) / len(all_tokens), oov_unique
 
 
+def vectorize_document(tokens: list, vocab: dict, vectors, vector_size: int = 100) -> np.ndarray:
+    """Vectorizes a single document by averaging its token embedding vectors."""
+    valid_vectors = [vectors[tok] for tok in tokens if tok in vocab]
+    if not valid_vectors:
+        return np.zeros(vector_size)
+    return np.mean(valid_vectors, axis=0)
+
+
 def vectorize_corpus(tokenized_sentences: list, embedding_model, vector_size: int = 100) -> np.ndarray:
     """Mean-pools token embeddings for each sentence in the corpus."""
     vocab, vectors = _get_vocab_and_vectors(embedding_model)
-    result = []
-    for sent in tokenized_sentences:
-        valid = [vectors[tok] for tok in sent if tok in vocab]
-        result.append(np.mean(valid, axis=0) if valid else np.zeros(vector_size))
-    return np.array(result)
+    return np.array([
+        vectorize_document(sent, vocab, vectors, vector_size)
+        for sent in tokenized_sentences
+    ])
 
 
 def vectorize_document_tfidf(tokens, vocab, vectors, tfidf_row, tfidf_vocab, vector_size=100):

@@ -36,11 +36,11 @@ _download_nltk_resources()
 
 _SPACE_RE = re.compile(r'\s+')
 _UNICODE_MAP = [
-    (re.compile(r'[""„‟]'), '"'),
-    (re.compile(r"['''']"), "'"),
-    (re.compile(r'[‒–—―−]'), '-'),
-    (re.compile(r'…'), '...'),
-    (re.compile(r'[�]'), ' '),
+    (re.compile(r'[\u201c\u201d\u201e\u201f]'), '"'),
+    (re.compile(r'[\u2018\u2019\u201a\u201b]'), "'"),
+    (re.compile(r'[\u2012\u2013\u2014\u2015\u2212]'), '-'),
+    (re.compile(r'\u2026'), '...'),
+    (re.compile(r'\uFFFD'), ' '),
 ]
 _TOKENIZER = TweetTokenizer(preserve_case=True, reduce_len=True, strip_handles=False)
 
@@ -99,6 +99,12 @@ def apply_lemmatization(tokens: list) -> list:
     return [t if t in PROTECTED_PLACEHOLDERS else lemmatizer.lemmatize(t) for t in tokens]
 
 
+def apply_lowercase(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    return text.lower()
+
+
 def preprocess_tweet(
     text: str,
     lowercase: bool = True,
@@ -114,7 +120,7 @@ def preprocess_tweet(
     """Full tweet preprocessing pipeline. Returns token list or joined string."""
     text = normalize_unicode_punctuation(text)
     if lowercase:
-        text = text.lower()
+        text = apply_lowercase(text)
     text = clean_regex(text, url_mode=url_mode, mention_mode=mention_mode, cashtag_mode=cashtag_mode)
     tokens = tokenize_tweet(text)
     if remove_stopwords:
