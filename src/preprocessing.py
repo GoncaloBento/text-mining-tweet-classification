@@ -1,4 +1,7 @@
 import re
+import sys
+import json
+import argparse
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
@@ -161,3 +164,89 @@ def run_smoke_tests() -> None:
         log_info(f"  Stemmed    : {stem}")
 
     log_success("Smoke tests complete.")
+
+
+# ── Main Entry Point for CLI & Agents ─────────────────────────────────────────
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="Text Mining Preprocessing Pipeline Tool. Highly configurable for direct command-line use or integration as an agent tool."
+    )
+    
+    # Text input options
+    input_group = parser.add_mutually_exclusive_group()
+    input_group.add_argument('--text', type=str, help="Single tweet text to preprocess.")
+    input_group.add_argument('--smoke-tests', action='store_true', help="Run verification smoke tests.")
+    input_group.add_argument('--json-input', action='store_true', help="Enable JSON input via stdin (great for agent workflows).")
+
+    # Pipeline configurations
+    parser.add_argument('--no-lowercase', action='store_false', dest='lowercase', help="Disable lowercasing.")
+    parser.add_argument('--url-mode', type=str, choices=['keep', 'remove', 'replace'], default='replace',
+                        help="How to handle URLs. Default: 'replace' with 'URL_PLACEHOLDER'.")
+    parser.add_argument('--mention-mode', type=str, choices=['keep', 'remove', 'replace'], default='replace',
+                        help="How to handle mentions (@user). Default: 'replace' with 'MENTION_PLACEHOLDER'.")
+    parser.add_argument('--cashtag-mode', type=str, choices=['keep', 'remove', 'replace'], default='keep',
+                        help="How to handle cashtags ($TSLA). Default: 'keep'.")
+    parser.add_argument('--no-stopwords', action='store_false', dest='remove_stopwords', help="Disable stopwords removal.")
+    parser.add_argument('--custom-stopwords', type=str, nargs='*', help="List of extra custom stopwords to remove.")
+    parser.add_argument('--stem', action='store_true', dest='use_stemming', help="Apply Porter stemming.")
+    parser.add_argument('--no-lemmatization', action='store_false', dest='use_lemmatization', help="Disable WordNet lemmatization.")
+    parser.add_argument('--return-str', action='store_true', help="Return results as a space-joined string instead of a token list.")
+
+    args = parser.parse_args()
+
+    # Case 1: Run Smoke Tests
+    if args.smoke_tests or len(sys.argv) == 1:
+        run_smoke_tests()
+        sys.exit(0)
+
+    # Case 2: Read JSON from stdin for Agent integration
+    if args.json_input:
+        try:
+            input_data = json.load(sys.stdin)
+            text_to_process = input_data.get('text', '')
+            
+            # Allow JSON keys to override arguments
+            lowercase = input_data.get('lowercase', args.lowercase)
+            url_mode = input_data.get('url_mode', args.url_mode)
+            mention_mode = input_data.get('mention_mode', args.mention_mode)
+            cashtag_mode = input_data.get('cashtag_mode', args.cashtag_mode)
+            remove_stopwords = input_data.get('remove_stopwords', args.remove_stopwords)
+            custom_stopwords = input_data.get('custom_stopwords', args.custom_stopwords)
+            use_stemming = input_data.get('use_stemming', args.use_stemming)
+            use_lemmatization = input_data.get('use_lemmatization', args.use_lemmatization)
+            return_str = input_data.get('return_str', args.return_str)
+            
+            result = preprocess_tweet(
+                text=text_to_process,
+                lowercase=lowercase,
+                url_mode=url_mode,
+                mention_mode=mention_mode,
+                cashtag_mode=cashtag_mode,
+                remove_stopwords=remove_stopwords,
+                custom_stopwords=custom_stopwords,
+                use_stemming=use_stemming,
+                use_lemmatization=use_lemmatization,
+                return_str=return_str
+            )
+            
+            print(json.dumps({"status": "success", "result": result}))
+        except Exception as e:
+            print(json.dumps({"status": "error", "message": str(e)}))
+        sys.exit(0)
+
+    # Case 3: Process single string passed via --text
+    if args.text:
+        result = preprocess_tweet(
+            text=args.text,
+            lowercase=args.lowercase,
+            url_mode=args.url_mode,
+            mention_mode=args.mention_mode,
+            cashtag_mode=args.cashtag_mode,
+            remove_stopwords=args.remove_stopwords,
+            custom_stopwords=args.custom_stopwords,
+            use_stemming=args.use_stemming,
+            use_lemmatization=args.use_lemmatization,
+            return_str=args.return_str
+        )
+        print(result)
