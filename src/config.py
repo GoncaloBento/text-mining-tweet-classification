@@ -33,6 +33,12 @@ DISTILBERT_CHECKPOINT_DIR = "outputs/distilbert_checkpoints"
 # Qwen decoder
 QWEN_MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 
+# Twitter-RoBERTa
+ROBERTA_MODEL_NAME = "cardiffnlp/twitter-roberta-base-sentiment"
+ROBERTA_N_SAMPLES_SPIKE = 200
+ROBERTA_CACHE_DIR = "outputs/roberta_cache"
+ROBERTA_CHECKPOINT_DIR = "outputs/roberta_checkpoints"
+
 # Feature matrix cache paths
 BOW_TRAIN_PATH       = "outputs/X_train_bow.npz"
 BOW_VAL_PATH         = "outputs/X_val_bow.npz"
