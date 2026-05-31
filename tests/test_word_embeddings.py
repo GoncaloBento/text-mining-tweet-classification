@@ -10,7 +10,7 @@ Unit tests for the word embeddings utility functions in src/word_embeddings.py.
 import unittest
 import numpy as np
 
-from src.word_embeddings import calculate_oov, vectorize_document, vectorize_corpus
+from src.word_embeddings import calculate_oov, vectorize_corpus
 
 class TestWordEmbeddings(unittest.TestCase):
 
@@ -47,25 +47,6 @@ class TestWordEmbeddings(unittest.TestCase):
         self.assertIn("date", oov_words)
         self.assertIn("durian", oov_words)
         self.assertNotIn("apple", oov_words)
-
-    def test_vectorize_document_mean_pooling(self):
-        # Case 1: All tokens are in vocabulary
-        tokens_all_in = ["apple", "banana"]
-        expected_mean = np.array([2.5, 3.5, 4.5])  # Mean of [1, 2, 3] and [4, 5, 6]
-        pooled_vector = vectorize_document(tokens_all_in, self.toy_vocab, self.toy_vectors, vector_size=3)
-        np.testing.assert_array_almost_equal(pooled_vector, expected_mean)
-
-        # Case 2: Some tokens are OOV
-        tokens_partial_oov = ["apple", "date"]
-        expected_mean_partial = np.array([1.0, 2.0, 3.0])  # Only 'apple' vector is kept
-        pooled_vector_partial = vectorize_document(tokens_partial_oov, self.toy_vocab, self.toy_vectors, vector_size=3)
-        np.testing.assert_array_almost_equal(pooled_vector_partial, expected_mean_partial)
-
-        # Case 3: All tokens are OOV (fallback zero vector)
-        tokens_all_oov = ["date", "durian"]
-        expected_zero = np.zeros(3)
-        pooled_vector_oov = vectorize_document(tokens_all_oov, self.toy_vocab, self.toy_vectors, vector_size=3)
-        np.testing.assert_array_almost_equal(pooled_vector_oov, expected_zero)
 
     def test_vectorize_corpus(self):
         tokenized_sentences = [

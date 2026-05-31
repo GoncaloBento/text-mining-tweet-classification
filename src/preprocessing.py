@@ -99,12 +99,6 @@ def apply_lemmatization(tokens: list) -> list:
     return [t if t in PROTECTED_PLACEHOLDERS else lemmatizer.lemmatize(t) for t in tokens]
 
 
-def apply_lowercase(text: str) -> str:
-    if not isinstance(text, str):
-        return ""
-    return text.lower()
-
-
 def preprocess_tweet(
     text: str,
     lowercase: bool = True,
@@ -120,7 +114,7 @@ def preprocess_tweet(
     """Full tweet preprocessing pipeline. Returns token list or joined string."""
     text = normalize_unicode_punctuation(text)
     if lowercase:
-        text = apply_lowercase(text)
+        text = text.lower()
     text = clean_regex(text, url_mode=url_mode, mention_mode=mention_mode, cashtag_mode=cashtag_mode)
     tokens = tokenize_tweet(text)
     if remove_stopwords:

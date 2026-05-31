@@ -12,7 +12,6 @@ tokenization, stemming, lemmatization) as well as the end-to-end pipeline.
 import unittest
 from src.preprocessing import (
     normalize_unicode_punctuation,
-    apply_lowercase,
     clean_regex,
     tokenize_tweet,
     remove_stopwords_from_tokens,
@@ -38,10 +37,6 @@ class TestTweetPreprocessing(unittest.TestCase):
         self.assertEqual(normalize_unicode_punctuation("details…"), "details...")
         # Unicode replacement character (\uFFFD)
         self.assertEqual(normalize_unicode_punctuation("price tar\uFFFD https"), "price tar  https")
-
-    def test_apply_lowercase(self):
-        """Test converting text to lowercase."""
-        self.assertEqual(apply_lowercase("TSLA BULLISH"), "tsla bullish")
 
     def test_clean_regex_urls(self):
         """Test different URL modes: keep, remove, and replace."""
