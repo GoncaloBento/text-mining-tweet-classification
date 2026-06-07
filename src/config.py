@@ -45,6 +45,12 @@ FINBERT_N_SAMPLES_SPIKE = 200
 FINBERT_CACHE_DIR = "outputs/finbert_cache"
 FINBERT_CHECKPOINT_DIR = "outputs/finbert_checkpoints"
 
+# DeBERTa-v3
+DEBERTA_MODEL_NAME = "microsoft/deberta-v3-base"
+DEBERTA_N_SAMPLES_SPIKE = 200
+DEBERTA_CACHE_DIR = "outputs/deberta_cache"
+DEBERTA_CHECKPOINT_DIR = "outputs/deberta_checkpoints"
+
 # Feature matrix cache paths
 BOW_TRAIN_PATH       = "outputs/X_train_bow.npz"
 BOW_VAL_PATH         = "outputs/X_val_bow.npz"

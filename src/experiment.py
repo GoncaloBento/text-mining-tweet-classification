@@ -45,6 +45,12 @@ def run_model_pipeline(
     )
 
 
+def run_classifier(model, X_train_vec, X_val_vec, y_train, y_val,
+                   model_name: str, feature_desc: str, params_str: str) -> dict:
+    return run_model_pipeline(X_train_vec, X_val_vec, y_train, y_val,
+                              model, model_name, feature_desc, params_str)
+
+
 def run_majority_baseline(y_train, y_val) -> dict:
     """Evaluates the majority-class baseline on the validation set and logs metrics."""
     majority_class = int(pd.Series(y_train).value_counts().idxmax())
