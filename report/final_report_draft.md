@@ -1,5 +1,5 @@
 # Text Mining Project Final Report
-**Group 31**: Filip, Marta LaFeria, Gonçalo Bento, Pedro Carrasqueira  
+**Group 31**: Filipe do Carmo, Marta LaFeria, Gonçalo Bento, Pedro Carrasqueira  
 **Nova IMS — Text Mining 2025/2026**
 
 ## 1. Data Exploration
