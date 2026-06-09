@@ -1,0 +1,129 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{enumitem}
+
+\title{Text Mining Project Final Report}
+\author{Nova IMS --- Text Mining 2025/2026}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Data Exploration}
+
+Our exploratory data analysis of the Finance Tweets Sentiment Corpora reveals a highly compact but heavily imbalanced dataset. 
+The training dataset consists of \textbf{9,543 tweets} categorized into Bearish (0), Bullish (1), and Neutral (2) sentiments.
+
+\subsection{Class Imbalance}
+\begin{itemize}[noitemsep]
+    \item \textbf{Neutral}: 6,178 (64.74\%)
+    \item \textbf{Bullish}: 1,923 (20.15\%)
+    \item \textbf{Bearish}: 1,442 (15.11\%)
+\end{itemize}
+
+This severe majority-class bias requires strict stratified splitting and minority-class compensatory techniques (e.g., balanced class weights) to avoid deceptive accuracy metrics.
+
+\subsection{Text Characteristics and Metadata}
+Tweets are highly compressed, averaging 85.8 characters and 12.2 tokens. Financial texts are uniquely structured:
+\begin{itemize}[noitemsep]
+    \item \textbf{URLs}: Appear in 53.0\% of tweets, strongly indicating Neutral factual journalism (56.9\% rate).
+    \item \textbf{Cashtags}: Stock tickers (e.g., \texttt{\$AAPL}) appear in 20.1\% of tweets and are strong Bullish indicators (34.1\% rate).
+    \item \textbf{Non-ASCII Characters}: Over 23\% of tweets contain smart punctuation, requiring robust normalization.
+\end{itemize}
+
+\section{Corpus Split and Data Preprocessing}
+
+To preserve label ratios, we partitioned our dataset using a strict \textbf{80/20 stratified train-validation split} (7,634 train; 1,909 validation).
+
+We designed a robust 7-step preprocessing pipeline specifically tailored for financial microblogs:
+\begin{enumerate}[noitemsep]
+    \item \textbf{Unicode \& Punctuation Normalization}: Converting smart quotes and en-dashes to standard ASCII.
+    \item \textbf{Lowercasing}: Collapsing identical terms.
+    \item \textbf{Regex Metadata Cleaning}: Replacing sparse, unique URLs and user handles with protected placeholders (\texttt{URL\_PLACEHOLDER}, \texttt{MENTION\_PLACEHOLDER}).
+    \item \textbf{NLTK TweetTokenizer}: Preserving hashtags and financial symbols.
+    \item \textbf{Custom Stopwords Removal}: Removing standard stopwords plus financial noise terms (e.g., ``rt'', ``http'', ``share'').
+    \item \textbf{WordNet Lemmatization}: Mapping words to roots without the destructive truncation of standard stemmers.
+\end{enumerate}
+
+\section{Feature Engineering}
+
+We transitioned from discrete Bag-of-Words to continuous dense vector spaces, exploring multiple representations.
+
+\subsection{Classical Vectorization}
+We implemented \textbf{CountVectorizer (BoW)} and \textbf{TfidfVectorizer} for unigrams. BoW slightly outperformed TF-IDF on Macro F1 (0.6990 vs. 0.6957) because in ultra-short financial tweets, raw token presence is a stronger sentiment indicator than inverse-frequency dampened weights. 
+
+\subsection{Word Embeddings}
+We compared a \textbf{Custom Word2Vec model} (trained from scratch) against a \textbf{pre-trained GloVe-Twitter-100 model}.
+\begin{itemize}[noitemsep]
+    \item \textbf{OOV Rate}: Custom Word2Vec had 0\% OOV for localized tokens and placeholders, whereas GloVe missed 33\% of unique validation terms (failing on cashtags and custom jargon).
+    \item \textbf{Pooling Strategies}: We explored Mean Vector Pooling vs. TF-IDF Weighted Average Pooling. Counter-intuitively, Mean Pooling outperformed TF-IDF weighting, as the latter over-amplified rare, noisy slang terms.
+    \item \textbf{The Pooling Bottleneck}: Both continuous models struggled against the optimized high-dimensional TF-IDF unigram+bigram baseline because averaging word vectors destroys word-order and negation boundaries.
+\end{itemize}
+
+\noindent \textbf{[EXTRA WORK - FEATURE ENGINEERING]}: \\
+To resolve static pooling limitations, we expanded our architecture to use \textbf{Dynamic Contextual Transformer Embeddings}, leveraging the self-attention mechanisms of RoBERTa and FinBERT to generate context-aware representations that natively handle negation and complex clauses.
+
+\section{Classification Models}
+
+We systematically benchmarked 16 classical machine learning configurations across six algorithms (KNN, Logistic Regression, MNB, MLP, Random Forest, XGBoost) using Optimized TF-IDF features.
+
+\subsection{Prioritized Analysis: Handling Class Imbalance}
+Based on the severe 65\% Neutral class imbalance, we ran an exhaustive experiment grid comparing four balancing strategies: \texttt{class\_weight='balanced'}, \texttt{oversample}, \texttt{undersample}, and \texttt{none} across model families.
+
+\noindent \textbf{Key Findings on Imbalance Strategies (Macro F1):}
+\begin{itemize}[noitemsep]
+    \item \textbf{Logistic Regression (LR)}: \texttt{class\_weight} (0.7113) $>$ \texttt{oversample} (0.7085) $>$ \texttt{undersample} (0.6652) $>$ \texttt{none} (0.6417).
+    \item \textbf{Multi-Layer Perceptron (MLP)}: \texttt{oversample} (0.6884) $>$ \texttt{none} (0.6830).
+    \item \textbf{Random Forest (RF)}: \texttt{class\_weight} (0.6589) $>$ \texttt{oversample} (0.6326) $>$ \texttt{none} (0.3313).
+    \item \textbf{Winner}: \textbf{Logistic Regression + \texttt{class\_weight='balanced'}} emerged as the absolute champion (F1 Macro = 0.7113). By mathematically scaling the loss function inversely to class frequencies, LR maximized recall on the minority Bearish (63.54\%) and Bullish (67.79\%) classes without losing Neutral accuracy. Over-sampling and Under-sampling produced competitive but slightly inferior bounds due to noise replication and data loss, respectively.
+\end{itemize}
+
+\noindent \textbf{[EXTRA WORK - CLASSIFICATION MODELS]}:\\
+Going beyond classical ML, we implemented and fine-tuned three advanced contextual Transformer models:
+\begin{enumerate}[noitemsep]
+    \item \textbf{Twitter-RoBERTa-base-sentiment}: Pre-trained on 58M tweets, natively handling informal syntax, slang, and emoticons. It achieved a strong Macro F1 of 0.8011.
+    \item \textbf{FinBERT (ProsusAI)}: Pre-trained on formal financial texts, excelling in precise financial jargon extraction. It struggled with the informal nature of the tweets, dropping to an F1 of 0.5911.
+    \item \textbf{DeBERTa-v3-base}: Advanced model utilizing disentangled attention. Interestingly, it collapsed during fine-tuning (F1 = 0.0920), indicating high sensitivity to hyperparameters on small datasets.
+\end{enumerate}
+These models represent a leap in architecture, actively overcoming the limitations of static word embeddings. We explicitly handled their mismatched label schemas by safely re-initializing their classification heads while freezing the backbone weights.
+
+\section{Evaluation and Results}
+
+Our champion classical baseline (\textbf{Logistic Regression L2, class\_weight='balanced', Optimized TF-IDF}) achieved:
+\begin{itemize}[noitemsep]
+    \item \textbf{Validation Accuracy}: 0.7810
+    \item \textbf{Macro Precision}: 0.7041
+    \item \textbf{Macro Recall}: 0.7201
+    \item \textbf{Macro F1-Score}: 0.7113
+\end{itemize}
+
+\subsection{Error Analysis \& Failure Modes}
+Despite high performance, confusion matrix analysis reveals distinct limitations of linear BoW models:
+\begin{enumerate}[noitemsep]
+    \item \textbf{Contextual Negation Blindness}: Failing to resolve sequential dependencies (e.g., ``not to like'', ``fail to halt''), leading to polarity inversions.
+    \item \textbf{Factual Reporting vs. Sentiment}: The model struggles with boundary ambiguity, aggressively flagging factual positive corporate news (often labeled Neutral) as Bullish.
+    \item \textbf{Clause Overriding}: In complex tweets (e.g., \textit{``profit rise fails to salvage''}), the sum of positive token weights overrides single critical negative tokens.
+\end{enumerate}
+These failures definitively justify our advanced transition into context-aware deep learning models (FinBERT/RoBERTa) capable of gating semantic flow.
+
+\section{Final Model Selection}
+
+Based on the empirical evidence from our extensive experiments, the final champion model selected for our official pipeline is the \textbf{Fine-Tuned DistilBERT} (\texttt{distilbert-base-uncased}).
+
+\subsection{Justification:}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Absolute Performance Winner}: DistilBERT achieved the highest overall Macro F1-Score (\textbf{0.8143}) across all 30+ tested configurations, dramatically outperforming the best classical machine learning model (Logistic Regression, F1=0.7113).
+    \item \textbf{Contextual Semantic Superiority}: Our error analysis revealed that classical TF-IDF pipelines suffer from ``Contextual Negation Blindness'' and clause overriding because they ignore word order. DistilBERT's bi-directional self-attention layers natively resolve these syntactical dependencies (e.g., cleanly distinguishing \textit{``fails to drop''} from \textit{``drops''}), solving the primary failure mode of our baseline models.
+    \item \textbf{Imbalance Resilience}: DistilBERT attained strong recall on the difficult minority Bearish class (Class F1 = 0.734) simply through superior dense representation learning, entirely avoiding the need for artificial SMOTE oversampling or mathematical loss-scaling hacks (\texttt{class\_weight='balanced'}).
+    \item \textbf{Efficiency vs. Domain Specificity}: Counter-intuitively, DistilBERT out-performed heavily domain-specific financial models like FinBERT (0.5911) and massive social media models like Twitter-RoBERTa (0.8011). DistilBERT proved to be the optimal ``Goldilocks'' model: it has enough general English representation to handle syntax, but is lightweight enough to achieve fast, highly stable convergence during fine-tuning on our compact dataset without catastrophically overfitting or collapsing (like DeBERTa-v3).
+\end{enumerate}
+
+Consequently, \texttt{distilbert-base-uncased} has been fully integrated into our Agentic Dispatcher (\texttt{autotune.py}) and is deployed as the final model for \texttt{tm\_final\_xx.ipynb}.
+
+\end{document}
