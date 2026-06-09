@@ -1,19 +1,98 @@
-\documentclass[11pt, a4paper]{article}
+\documentclass[11pt,a4paper]{article}
+
+% ---- Encoding & language ----
 \usepackage[utf8]{inputenc}
-\usepackage{geometry}
-\geometry{margin=1in}
-\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+% ---- Layout ----
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{parskip}
+\usepackage{microtype}
+
+% ---- Typography ----
+\usepackage{mathpazo}
+\linespread{1.15}
+
+% ---- Section styling ----
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\Large\sffamily\bfseries}{\thesection}{0.7em}{}
+\titleformat{\subsection}
+  {\normalfont\large\sffamily\bfseries}{\thesubsection}{0.6em}{}
+
+% ---- Math, figures, tables ----
+\usepackage{amsmath, amssymb}
 \usepackage{graphicx}
+\usepackage{caption}
+\captionsetup{font=small, labelfont={sf,bf}}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{float}
+
+% ---- Algorithms ----
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ---- References & links ----
+\usepackage[numbers,square,sort&compress]{natbib}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,
+            linkcolor=black,
+            citecolor=blue!45!black,
+            urlcolor=blue!45!black]{hyperref}
 \usepackage{enumitem}
 
-\title{Text Mining Project Final Report}
-\author{Group 31: Filipe do Carmo, Marta LaFeria, Gonçalo Bento, Pedro Carrasqueira \\ Nova IMS --- Text Mining 2025/2026}
-\date{}
-
 \begin{document}
+\pagenumbering{gobble}
 
-\maketitle
+% =============================================================================
+\begin{titlepage}
+\centering
+\thispagestyle{empty}
 
+{\sffamily\large NOVA Information Management School\par}
+{\sffamily\normalsize Universidade Nova de Lisboa\par}
+
+\vspace{1.5cm}
+\vspace{2cm}
+
+{\sffamily\large Text Mining\par}
+{\sffamily\normalsize Academic Year 2025/26 \textbar{} Course Project\par}
+
+\vfill
+
+{\sffamily\Huge\bfseries Text Mining Project Final Report\par}
+\vspace{0.4em}
+{\sffamily\Huge\bfseries\itshape Finance Tweets Sentiment Analysis\par}
+\vspace{0.4em}
+
+\vfill
+
+{\sffamily\large\bfseries Authors\par}
+\vspace{0.4em}
+\begin{tabular}{rl}
+  Filipe Brand\~ao Carmo & 20240828 \\
+  Marta La Feria         & 20211051 \\
+  Gon\c{c}alo Bento      & 20241137 \\
+  Pedro Carrasqueira     & 20250488 \\
+\end{tabular}
+
+\vspace{0.8cm}
+{\sffamily Group 31\par}
+\vspace{0.4em}
+
+\vfill
+\end{titlepage}
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% =============================================================================
+\tableofcontents
+\newpage
+
+% =============================================================================
 \section{Data Exploration}
 
 Our exploratory data analysis of the Finance Tweets Sentiment Corpora reveals a highly compact but heavily imbalanced dataset. 
@@ -36,6 +115,7 @@ Tweets are highly compressed, averaging 85.8 characters and 12.2 tokens. Financi
     \item \textbf{Non-ASCII Characters}: Over 23\% of tweets contain smart punctuation, requiring robust normalization.
 \end{itemize}
 
+% =============================================================================
 \section{Corpus Split and Data Preprocessing}
 
 To preserve label ratios, we partitioned our dataset using a strict \textbf{80/20 stratified train-validation split} (7,634 train; 1,909 validation).
@@ -50,6 +130,7 @@ We designed a robust 7-step preprocessing pipeline specifically tailored for fin
     \item \textbf{WordNet Lemmatization}: Mapping words to roots without the destructive truncation of standard stemmers.
 \end{enumerate}
 
+% =============================================================================
 \section{Feature Engineering}
 
 We transitioned from discrete Bag-of-Words to continuous dense vector spaces, exploring multiple representations.
@@ -68,6 +149,7 @@ We compared a \textbf{Custom Word2Vec model} (trained from scratch) against a \t
 \noindent \textbf{[EXTRA WORK - FEATURE ENGINEERING]}: \\
 To resolve static pooling limitations, we expanded our architecture to use \textbf{Dynamic Contextual Transformer Embeddings}, leveraging the self-attention mechanisms of RoBERTa and FinBERT to generate context-aware representations that natively handle negation and complex clauses.
 
+% =============================================================================
 \section{Classification Models}
 
 We systematically benchmarked 16 classical machine learning configurations across six algorithms (KNN, Logistic Regression, MNB, MLP, Random Forest, XGBoost) using Optimized TF-IDF features.
@@ -92,6 +174,7 @@ Going beyond classical ML, we implemented and fine-tuned three advanced contextu
 \end{enumerate}
 These models represent a leap in architecture, actively overcoming the limitations of static word embeddings. We explicitly handled their mismatched label schemas by safely re-initializing their classification heads while freezing the backbone weights.
 
+% =============================================================================
 \section{Evaluation and Results}
 
 Our champion classical baseline (\textbf{Logistic Regression L2, class\_weight='balanced', Optimized TF-IDF}) achieved:
@@ -111,6 +194,7 @@ Despite high performance, confusion matrix analysis reveals distinct limitations
 \end{enumerate}
 These failures definitively justify our advanced transition into context-aware deep learning models (FinBERT/RoBERTa) capable of gating semantic flow.
 
+% =============================================================================
 \section{Final Model Selection}
 
 Based on the empirical evidence from our extensive experiments, the final champion model selected for our official pipeline is the \textbf{Fine-Tuned DistilBERT} (\texttt{distilbert-base-uncased}).
