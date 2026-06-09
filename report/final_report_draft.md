@@ -67,10 +67,11 @@ Based on the severe 65% Neutral class imbalance, we ran an exhaustive experiment
 * **Winner**: **Logistic Regression + `class_weight='balanced'`** emerged as the absolute champion (F1 Macro = 0.7113). By mathematically scaling the loss function inversely to class frequencies, LR maximized recall on the minority Bearish (63.54%) and Bullish (67.79%) classes without losing Neutral accuracy. Over-sampling and Under-sampling produced competitive but slightly inferior bounds due to noise replication and data loss, respectively.
 
 **[EXTRA WORK - CLASSIFICATION MODELS]**:
-Going beyond classical ML, we implemented and fine-tuned two advanced contextual Transformer models:
-1. **Twitter-RoBERTa-base-sentiment**: Pre-trained on 58M tweets, natively handling informal syntax, slang, and emoticons.
-2. **FinBERT (ProsusAI)**: Pre-trained on formal financial texts, excelling in precise financial jargon extraction.
-Both models represent a leap in architecture, actively overcoming the limitations of static word embeddings. We explicitly handled their mismatched label schemas by safely re-initializing their classification heads while freezing the backbone weights.
+Going beyond classical ML, we implemented and fine-tuned three advanced contextual Transformer models:
+1. **Twitter-RoBERTa-base-sentiment**: Pre-trained on 58M tweets, natively handling informal syntax, slang, and emoticons. It achieved a strong Macro F1 of 0.8011.
+2. **FinBERT (ProsusAI)**: Pre-trained on formal financial texts, excelling in precise financial jargon extraction. It struggled with the informal nature of the tweets, dropping to an F1 of 0.5911.
+3. **DeBERTa-v3-base**: Advanced model utilizing disentangled attention. Interestingly, it collapsed during fine-tuning (F1 = 0.0920), indicating high sensitivity to hyperparameters on small datasets.
+These models represent a leap in architecture, actively overcoming the limitations of static word embeddings. We explicitly handled their mismatched label schemas by safely re-initializing their classification heads while freezing the backbone weights.
 
 ---
 
@@ -91,11 +92,15 @@ These failures definitively justify our advanced transition into context-aware d
 
 ---
 
-## 6. Extra Challenge: Agentic AI Workflow
+## 6. Final Model Selection
 
-To meet the Extra Challenge criteria, our development process was heavily orchestrated by an **Agentic AI Workflow**. 
-The AI assistant performed non-trivial decision-making and codebase engineering, including:
-* **Developing a Smart Dispatcher (`autotune.py`)**: The agent dynamically refactored our tuning pipeline into an intelligent router. It parses leaderboard outputs (`outputs/results.csv`) and seamlessly dispatches execution. 
-* **Automating Deep Learning Evaluation**: If the champion model is a Transformer (e.g., DistilBERT), it automatically imports the necessary trainer module and runs the PyTorch loops, rather than failing or restricting evaluation to classical algorithms.
-* **Classical ML Refitting**: If the champion is classical, it safely refits on the full 100% training split and generates the final test prediction CSVs (`outputs/pred_best.csv`).
-* **Architectural Coherence**: The agent proactively identified inconsistencies between our class-imbalance Jupyter Notebooks and our `.csv` leaderboards, programmatically extracting and logging the missing data to ensure the pipeline correctly recognized the true baseline champion.
+Based on the empirical evidence from our extensive experiments, the final champion model selected for our official pipeline is the **Fine-Tuned DistilBERT** (`distilbert-base-uncased`).
+
+### Justification:
+
+1. **Absolute Performance Winner**: DistilBERT achieved the highest overall Macro F1-Score (**0.8143**) across all 30+ tested configurations, dramatically outperforming the best classical machine learning model (Logistic Regression, F1=0.7113).
+2. **Contextual Semantic Superiority**: Our error analysis revealed that classical TF-IDF pipelines suffer from "Contextual Negation Blindness" and clause overriding because they ignore word order. DistilBERT's bi-directional self-attention layers natively resolve these syntactical dependencies (e.g., cleanly distinguishing *"fails to drop"* from *"drops"*), solving the primary failure mode of our baseline models.
+3. **Imbalance Resilience**: DistilBERT attained strong recall on the difficult minority Bearish class (Class F1 = 0.734) simply through superior dense representation learning, entirely avoiding the need for artificial SMOTE oversampling or mathematical loss-scaling hacks (`class_weight='balanced'`).
+4. **Efficiency vs. Domain Specificity**: Counter-intuitively, DistilBERT out-performed heavily domain-specific financial models like FinBERT (0.5911) and massive social media models like Twitter-RoBERTa (0.8011). DistilBERT proved to be the optimal "Goldilocks" model: it has enough general English representation to handle syntax, but is lightweight enough to achieve fast, highly stable convergence during fine-tuning on our compact dataset without catastrophically overfitting or collapsing (like DeBERTa-v3).
+
+Consequently, `distilbert-base-uncased` has been fully integrated into our Agentic Dispatcher (`autotune.py`) and is deployed as the final model for `tm_final_xx.ipynb`.
