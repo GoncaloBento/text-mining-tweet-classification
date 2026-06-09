@@ -9,8 +9,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
-from src.config import RESULTS_CSV_PATH, SEED
-from src.utils import log_info, log_warning, print_header
+from src.config import RESULTS_CSV_PATH, SEED, TRAIN_CSV_PATH, TEST_CSV_PATH
+from src.utils import log_info, log_warning, print_header, log_success
+from src.preprocessing import preprocess_tweet
+from src.evaluate import save_submission
 
 
 def _build_vectorizer(feature_desc: str) -> TfidfVectorizer:
@@ -94,3 +96,51 @@ def instantiate_pipeline(config: pd.Series) -> tuple:
     log_info(f"Vectorizer : {vec.__class__.__name__} {vec.get_params()}")
     log_info(f"Classifier : {clf.__class__.__name__}")
     return vec, clf
+
+if __name__ == "__main__":
+    best_config = get_best_model_config()
+    model_name_upper = str(best_config["model_name"]).upper()
+    feat_desc = str(best_config["feature_description"])
+
+    # Check if Deep Learning Model
+    if "HF FINE-TUNE" in feat_desc.upper() or "BERT" in model_name_upper:
+        log_info("Deep Learning model detected. Dispatching to HF trainer...")
+        if "DISTILBERT" in model_name_upper:
+            import src.distilbert_trainer as trainer_module
+        elif "FINBERT" in model_name_upper:
+            import src.finbert_trainer as trainer_module
+        elif "ROBERTA" in model_name_upper:
+            import src.roberta_trainer as trainer_module
+        else:
+            raise ValueError(f"Unsupported HF model: {best_config['model_name']}")
+            
+        trainer = trainer_module.run_trainer(n_samples=None)
+        tokenizer = trainer_module.load_tokenizer()
+        preds = trainer_module.predict_test_set(trainer, tokenizer)
+        test_df = pd.read_csv(TEST_CSV_PATH)
+        save_submission(test_df, preds)
+    else:
+        log_info("Classical ML model detected. Using scikit-learn logic...")
+        vec, clf = instantiate_pipeline(best_config)
+        
+        log_info("Loading 100% training data...")
+        train_df = pd.read_csv(TRAIN_CSV_PATH)
+        y_train = train_df["label"]
+        
+        log_info("Preprocessing...")
+        X_train_pre = train_df["text"].apply(lambda t: preprocess_tweet(t, return_str=True))
+        
+        log_info("Vectorizing...")
+        X_train_vec = vec.fit_transform(X_train_pre)
+        
+        log_info("Fitting classical model...")
+        clf.fit(X_train_vec, y_train)
+        
+        log_info("Predicting test data...")
+        test_df = pd.read_csv(TEST_CSV_PATH)
+        X_test_pre = test_df["text"].apply(lambda t: preprocess_tweet(t, return_str=True))
+        X_test_vec = vec.transform(X_test_pre)
+        preds = clf.predict(X_test_vec)
+        
+        save_submission(test_df, preds)
+

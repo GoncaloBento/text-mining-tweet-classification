@@ -50,12 +50,9 @@ Ensemble trees (Random Forest, XGBoost) and k-Nearest Neighbors perform poorly:
 
 ## ⚙️ 4.3. Automated Tuning & Prediction Pipeline (`src/autotune.py`)
 
-To streamline our submission workflow, we created an automated hyperparameter optimizer and retrainer script:
+To streamline our submission workflow, we created a **Smart Dispatcher** retrainer script (`src/autotune.py`) to automatically orchestrate our predictions:
 
-1. **Rolling Leaderboard Scan**: The tuner parses the leaderboard in `outputs/results.csv`, automatically locating the champion baseline configuration based on the highest **Macro F1-Score**.
-2. **100% Training Refitting**:
-   - Training on a validation fold reduces the sample size by 20%. To maximize performance on the hidden test set, `src/autotune.py` refits the champion model configuration (Logistic Regression L2, Optimized TF-IDF) on **100% of the training data** ($N=9,543$).
-3. **Optimized Test Predictions**:
-   - Loads the un-labeled test set (`data/test.csv`).
-   - Applies the preprocessor and fitted champion pipeline.
-   - Generates predictions and exports them to **`outputs/pred_best.csv`** in the exact formatted structure required for moodle submission (matching Moodle delivery guidelines).
+1. **Rolling Leaderboard Scan**: The tuner parses the leaderboard in `outputs/results.csv`, automatically locating the champion model based on the highest **Macro F1-Score**.
+2. **Deep Learning Smart Dispatching**: If the champion model is a Hugging Face Transformer (e.g., DistilBERT, FinBERT), the script dynamically imports the dedicated trainer module and triggers its native PyTorch fine-tuning loop (`run_trainer(n_samples=None)`), safely handling complex tokenization without redundant code.
+3. **Classical ML Refitting**: If the champion is a classical model (e.g., Logistic Regression), it refits the model configuration on **100% of the training data** ($N=9,543$) using our scikit-learn pipeline.
+4. **Optimized Test Predictions**: Applies the appropriate predictor to the un-labeled test set (`data/test.csv`) and exports them to **`outputs/pred_best.csv`** in the exact formatted structure required for submission.

@@ -27,6 +27,7 @@ timestamp,owner,model_name,feature_description,accuracy,precision_macro,recall_m
 2026-05-31 07:48:38,Bento,MLP,GloVe-Twitter-100 Mean Pooling,0.7412,0.6412,0.6091,0.6226,"hidden_layer_sizes=(128,), activation=relu, solver=adam, max_iter=300","{'Bearish': 0.46616541353383456, 'Bullish': 0.5502793296089385, 'Neutral': 0.8513618677042801}",
 2026-05-31 07:48:39,Bento,Logistic Regression,GloVe-Twitter-100 TF-IDF Weighted Pooling,0.6296,0.5531,0.6029,0.5637,"penalty=l2, solver=lbfgs, max_iter=1000, class_weight=balanced","{'Bearish': 0.4578313253012048, 'Bullish': 0.4902186421173763, 'Neutral': 0.742960944595822}",
 2026-05-31 07:49:08,Bento,MLP,GloVe-Twitter-100 TF-IDF Weighted Pooling,0.7025,0.6008,0.5856,0.5924,"hidden_layer_sizes=(128,), activation=relu, solver=adam, max_iter=300","{'Bearish': 0.47232472324723246, 'Bullish': 0.48877146631439894, 'Neutral': 0.8161969035331481}",
+
 2026-06-07 11:21:46,,Logistic Regression,"TF-IDF (1,2) opt",0.7810,0.7041,0.7201,0.7113,"class_weight=balanced, C=1.0","{'Bearish': 0.5970636215334421, 'Bullish': 0.6761658031088082, 'Neutral': 0.8606658446362515}",
 2026-06-07 11:21:46,,Logistic Regression,"TF-IDF (1,2) opt",0.7926,0.7193,0.7208,0.7200,"class_weight=balanced, C=4.0","{'Bearish': 0.603448275862069, 'Bullish': 0.6866059817945384, 'Neutral': 0.8699878493317132}",
 2026-06-07 11:21:46,,LinearSVC,"TF-IDF (1,2) opt",0.7957,0.7270,0.7001,0.7124,C=1.0,"{'Bearish': 0.5798165137614679, 'Bullish': 0.6820027063599459, 'Neutral': 0.8752959747434885}",
