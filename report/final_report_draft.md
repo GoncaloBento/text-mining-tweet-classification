@@ -66,8 +66,8 @@ Based on the severe 65% Neutral class imbalance, we ran an exhaustive experiment
 * **Random Forest (RF)**: `class_weight` (0.6589) > `oversample` (0.6326) > `none` (0.3313).
 * **Winner**: **Logistic Regression + `class_weight='balanced'`** emerged as the absolute champion (F1 Macro = 0.7113). By mathematically scaling the loss function inversely to class frequencies, LR maximized recall on the minority Bearish (63.54%) and Bullish (67.79%) classes without losing Neutral accuracy. Over-sampling and Under-sampling produced competitive but slightly inferior bounds due to noise replication and data loss, respectively.
 
-**[EXTRA WORK - CLASSIFICATION MODELS]**:
-Going beyond classical ML, we implemented and fine-tuned three advanced contextual Transformer models:
+**[EXTRA WORK - FEATURE ENGINEERING (Extra Transformer Encoders)]**:
+Going beyond classical ML, we implemented and fine-tuned three advanced contextual Transformer Encoder models:
 1. **Twitter-RoBERTa-base-sentiment**: Pre-trained on 58M tweets, natively handling informal syntax, slang, and emoticons. It achieved a strong Macro F1 of 0.8011.
 2. **FinBERT (ProsusAI)**: Pre-trained on formal financial texts, excelling in precise financial jargon extraction. It struggled with the informal nature of the tweets, dropping to an F1 of 0.5911.
 3. **DeBERTa-v3-base**: Advanced model utilizing disentangled attention. Interestingly, it collapsed during fine-tuning (F1 = 0.0920), indicating high sensitivity to hyperparameters on small datasets.
