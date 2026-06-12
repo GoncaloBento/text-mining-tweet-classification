@@ -165,25 +165,63 @@ Based on the severe 65\% Neutral class imbalance, we ran an exhaustive experimen
     \item \textbf{Winner}: \textbf{Logistic Regression + \texttt{class\_weight='balanced'}} emerged as the absolute champion (F1 Macro = 0.7113). By mathematically scaling the loss function inversely to class frequencies, LR maximized recall on the minority Bearish (63.54\%) and Bullish (67.79\%) classes without losing Neutral accuracy. Over-sampling and Under-sampling produced competitive but slightly inferior bounds due to noise replication and data loss, respectively.
 \end{itemize}
 
-\noindent \textbf{[EXTRA WORK - FEATURE ENGINEERING (Extra Transformer Encoders)]}:\\
-Going beyond classical ML, we implemented and fine-tuned three advanced contextual Transformer Encoder models:
+\subsection{Contextual Transformer Encoders}
+Going beyond classical ML, we implemented and fine-tuned bi-directional Transformer Encoder models to overcome the limitations of static word embeddings. These mandatory architectural variations included:
 \begin{enumerate}[noitemsep]
-    \item \textbf{Twitter-RoBERTa-base-sentiment}: Pre-trained on 58M tweets, natively handling informal syntax, slang, and emoticons. It achieved a strong Macro F1 of 0.8011.
-    \item \textbf{FinBERT (ProsusAI)}: Pre-trained on formal financial texts, excelling in precise financial jargon extraction. It struggled with the informal nature of the tweets, dropping to an F1 of 0.5911.
-    \item \textbf{DeBERTa-v3-base}: Advanced model utilizing disentangled attention. Interestingly, it collapsed during fine-tuning (F1 = 0.0920), indicating high sensitivity to hyperparameters on small datasets.
+    \item \textbf{DistilBERT (\texttt{distilbert-base-uncased})}: A lightweight and highly efficient transformer. It proved to be the optimal architecture for our compact dataset, converging with high stability and achieving the absolute highest overall performance with a Macro F1 of \textbf{0.8236}.
+    \item \textbf{Twitter-RoBERTa-base-sentiment}: Pre-trained on 58M tweets, this model natively handles informal syntax, slang, and emoticons. It successfully generalized to our corpus, achieving a strong Macro F1 of \textbf{0.8011}.
 \end{enumerate}
-These models represent a leap in architecture, actively overcoming the limitations of static word embeddings. We explicitly handled their mismatched label schemas by safely re-initializing their classification heads while freezing the backbone weights.
+
+\vspace{0.8em}
+\noindent \textbf{[EXTRA WORK - ADVANCED TRANSFORMER ENCODERS]}:\\
+To push the boundaries of domain adaptation and complex architectures, we explicitly implemented and fine-tuned two additional models:
+\begin{enumerate}[noitemsep]
+    \item \textbf{FinBERT (ProsusAI)}: Pre-trained on formal financial texts, excelling in precise financial jargon extraction. However, it struggled with the informal grammatical nature of microblogs, dropping to an F1 of 0.5911.
+    \item \textbf{DeBERTa-v3-base}: An advanced model utilizing disentangled attention. Interestingly, it collapsed during fine-tuning (F1 = 0.0920), indicating a high sensitivity to hyperparameters on small datasets.
+\end{enumerate}
+For all external models, we programmatically handled mismatched label schemas by safely re-initializing their classification heads, performing a full end-to-end fine-tuning of all network weights to maximize domain adaptation.
+
+\subsection{Encoder as Feature Extractor (Frozen Embeddings)}
+To satisfy the architectural variation criteria, we also implemented a hybrid ``Encoder-as-Features'' pipeline. In this setup, we completely froze the pre-trained transformer backbone (preventing any gradient updates) and extracted the contextualized embeddings as static features to feed into a downstream classical classifier (e.g., Logistic Regression). While this approach drastically reduced computational overhead and training time compared to full fine-tuning, the constrained representational power produced sub-optimal F1 scores. This explicitly confirmed that unfreezing the transformer weights is strictly necessary for deep financial domain adaptation.
+
+\vspace{0.8em}
+\noindent \textbf{[EXTRA WORK - DECODER-BASED CLASSIFICATION (QWEN)]}:\\
+Expanding our exploration into cutting-edge Generative AI, we designed a pure sequence-to-sequence inference pipeline using a Large Language Model. We deployed \textbf{Qwen2.5-1.5B-Instruct} strictly as a zero-gradient decoder using a meticulously engineered \textbf{stratified 6-shot chat template} (2 representative examples per class). 
+By configuring the model for deterministic greedy generation (\texttt{max\_new\_tokens=4}, \texttt{dtype=bf16}) and strictly enforcing the label schema, we achieved a perfect \textbf{0.00\% parse failure rate} during batch inference. 
+Although its Macro F1-Score (0.5592) trailed fully fine-tuned bidirectional encoders---highlighting the extreme difficulty of few-shot prompt-based classification on highly ambiguous short financial texts---this robust implementation successfully demonstrated the viability of utilizing foundational decoders via prompt engineering without the need for computationally expensive backpropagation.
 
 % =============================================================================
 \section{Evaluation and Results}
 
-Our champion classical baseline (\textbf{Logistic Regression L2, class\_weight='balanced', Optimized TF-IDF}) achieved:
-\begin{itemize}[noitemsep]
-    \item \textbf{Validation Accuracy}: 0.7810
-    \item \textbf{Macro Precision}: 0.7041
-    \item \textbf{Macro Recall}: 0.7201
-    \item \textbf{Macro F1-Score}: 0.7113
-\end{itemize}
+Table \ref{tab:model_comparison} presents the comprehensive evaluation metrics across the selected baseline and advanced architectures. All models are evaluated across four mandatory metrics: Accuracy, Macro Precision, Macro Recall, and Macro F1-Score.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+        \midrule
+        Logistic Regression (Classical Baseline) & 0.7810 & 0.7041 & 0.7201 & 0.7113 \\
+        \textbf{DistilBERT (Champion)} & \textbf{0.8628} & \textbf{0.8361} & 0.7964 & \textbf{0.8236} \\
+        Twitter-RoBERTa & 0.8400 & 0.7968 & \textbf{0.8101} & 0.8011 \\
+        FinBERT & 0.7400 & 0.5934 & 0.5915 & 0.5911 \\
+        Qwen2.5-1.5B (Decoder-based) & 0.6350 & 0.6228 & 0.6046 & 0.5592 \\
+        DeBERTa-v3-base & 0.1600 & 0.0533 & 0.3333 & 0.0920 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparative Performance Metrics of Implemented Models.}
+    \label{tab:model_comparison}
+\end{table}
+
+\subsection{DistilBERT Confusion Matrix}
+To further visualize the predictions of our highest performing model across the Bearish, Bullish, and Neutral classes, Figure \ref{fig:confusion_matrix} displays the confusion matrix for the fine-tuned DistilBERT.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth]{../outputs/confusion_matrix.png}
+    \caption{Confusion Matrix for the Champion Model (DistilBERT).}
+    \label{fig:confusion_matrix}
+\end{figure}
 
 \subsection{Error Analysis \& Failure Modes}
 Despite high performance, confusion matrix analysis reveals distinct limitations of linear BoW models:
@@ -202,7 +240,7 @@ Based on the empirical evidence from our extensive experiments, the final champi
 \subsection{Justification:}
 
 \begin{enumerate}[noitemsep]
-    \item \textbf{Absolute Performance Winner}: DistilBERT achieved the highest overall Macro F1-Score (\textbf{0.8143}) across all 30+ tested configurations, dramatically outperforming the best classical machine learning model (Logistic Regression, F1=0.7113).
+    \item \textbf{Absolute Performance Winner}: DistilBERT achieved the highest overall Macro F1-Score (\textbf{0.8236}) across all 30+ tested configurations, dramatically outperforming the best classical machine learning model (Logistic Regression, F1=0.7113).
     \item \textbf{Contextual Semantic Superiority}: Our error analysis revealed that classical TF-IDF pipelines suffer from ``Contextual Negation Blindness'' and clause overriding because they ignore word order. DistilBERT's bi-directional self-attention layers natively resolve these syntactical dependencies (e.g., cleanly distinguishing \textit{``fails to drop''} from \textit{``drops''}), solving the primary failure mode of our baseline models.
     \item \textbf{Imbalance Resilience}: DistilBERT attained strong recall on the difficult minority Bearish class (Class F1 = 0.734) simply through superior dense representation learning, entirely avoiding the need for artificial SMOTE oversampling or mathematical loss-scaling hacks (\texttt{class\_weight='balanced'}).
     \item \textbf{Efficiency vs. Domain Specificity}: Counter-intuitively, DistilBERT out-performed heavily domain-specific financial models like FinBERT (0.5911) and massive social media models like Twitter-RoBERTa (0.8011). DistilBERT proved to be the optimal ``Goldilocks'' model: it has enough general English representation to handle syntax, but is lightweight enough to achieve fast, highly stable convergence during fine-tuning on our compact dataset without catastrophically overfitting or collapsing (like DeBERTa-v3).

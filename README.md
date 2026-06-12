@@ -12,35 +12,29 @@ NLP project for the Text Mining course at NOVA IMS. Goal: classify the market se
 
 ```
 .
-├── data/                 # train.csv / test.csv (not in git — drop them here)
+├── data/                 # train.csv / test.csv
 ├── notebooks/
-│   ├── 00_eda.ipynb
-│   ├── 01_preprocessing.ipynb
-│   ├── 02_bow_tfidf_classical.ipynb
-│   ├── 03_word_embeddings.ipynb
-│   ├── 04_transformers.ipynb
-│   ├── 05_decoder_extra.ipynb
-│   ├── 06_agent.ipynb
-│   ├── tm_tests_xx.ipynb
-│   └── tm_final_xx.ipynb
-├── src/
-│   ├── __init__.py       # Python package marker
-│   ├── config.py         # Global seed and configurations
-│   ├── train_val_split.py# Stratified dataset train/val splitting
-│   ├── preprocessing.py  # Tweet preprocessing pipeline
-│   ├── features.py       # Sparse Count & TF-IDF vectorizers (.npz)
-│   ├── word_embeddings.py# Word2Vec and GloVe pooling comparison
-│   ├── evaluate.py       # Unified leaderboard evaluation utils
-│   ├── baseline_smoke_test.py # Simple majority smoke baseline
-│   ├── experiment.py     # Main classical ML classifier orchestrator
-│   ├── autotune.py       # Automated hyperparameter retrainer & Moodle inference
-│   └── error_analysis.py # Deep error profiling and reporting
+│   ├── archive/          # Archived experimental notebooks
+│   ├── tm_tests_31.ipynb # Official tested techniques notebook
+│   └── tm_final_31.ipynb # Clean final pipeline notebook
 ├── outputs/
-│   ├── eda/              # EDA charts (committed)
-│   ├── results.csv       # rolling leaderboard of every model run
-│   └── pred_xx.csv       # final deliverable
-├── report/
-│   └── report_xx.pdf
+│   ├── eda/              # EDA charts and conclusions
+│   ├── embeddings/       # Extracted Transformer and word embeddings
+│   ├── results.csv       # Unified rolling leaderboard
+│   └── pred_best.csv     # Final predictions deliverable
+├── report/               # Report drafts and final LaTeX source
+│   └── final_report.tex  # Official Final Report
+├── src/                  # Main Python source code and trainers
+│   ├── autotune.py
+│   ├── config.py
+│   ├── eda.py
+│   ├── error_analysis.py
+│   ├── evaluate.py
+│   ├── experiment.py
+│   ├── features.py
+│   ├── preprocessing.py
+│   ├── word_embeddings.py
+│   └── *_trainer.py      # Various transformer training scripts
 └── README.md
 ```
 
@@ -77,17 +71,6 @@ pip install -r requirements.txt
 - Vectorisers and embedding models fitted on **train only**.
 - Final pipeline must run top-to-bottom on a clean kernel before submission.
 
-## 🤖 AI Agent Integration
-
-This repository is fully optimized for AI coding assistants (Antigravity, Cursor, Claude CLI, etc.) using a dedicated repository-scoped agent configuration under the [.agent/](file:///c:/Users/filip/TextMining-Corpora/.agent/) directory:
-
-* **📁 [.agent/rules.md](file:///c:/Users/filip/TextMining-Corpora/.agent/rules.md)**: Universal rules and guidelines (reproducibility, testing, built-in tools usage) that all agents should read upon opening this workspace.
-* **📁 [.agent/skills/](file:///c:/Users/filip/TextMining-Corpora/.agent/skills/)**: Directory for custom modular tools, workflows, and skill definitions that travel with this repository.
-* **📁 [.agent/agents/](file:///c:/Users/filip/TextMining-Corpora/.agent/agents/)**: Directory for custom agent prompt templates, role definitions, and system configurations.
-
-Incoming coding assistants can execute the built-in exploratory data analysis (`src/eda.py`) and text preprocessing (`src/preprocessing.py`) tools by following the exact command structures documented inside [.agent/rules.md](file:///c:/Users/filip/TextMining-Corpora/.agent/rules.md).
-
----
 
 ## 📋 Course Project Guidelines
 
