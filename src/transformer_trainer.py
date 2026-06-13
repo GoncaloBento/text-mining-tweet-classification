@@ -68,26 +68,27 @@ def load_tokenizer(spec: TrainerSpec) -> AutoTokenizer:
     return tokenizer
 
 
-def _tokenize_dataset(tokenizer, texts, labels=None) -> Dataset:
+def _tokenize_dataset(tokenizer, texts, labels=None, max_length: int = MAX_LENGTH) -> Dataset:
     """Build a tokenized HF Dataset from texts (and optional labels)."""
     data = {"text": list(texts)}
     if labels is not None:
         data["label"] = list(labels)
     return Dataset.from_dict(data).map(
-        lambda batch: tokenizer(batch["text"], truncation=True, max_length=MAX_LENGTH),
+        lambda batch: tokenizer(batch["text"], truncation=True, max_length=max_length),
         batched=True,
         remove_columns=["text"],
     )
 
 
-def build_hf_datasets(tokenizer, X_train, X_val, y_train, y_val, cache_dir: Path):
+def build_hf_datasets(tokenizer, X_train, X_val, y_train, y_val, cache_dir: Path,
+                      max_length: int = MAX_LENGTH):
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     def _build(texts, labels, cache_path):
         if cache_path.exists():
             log_info(f"Loading dataset from cache: {cache_path}")
             return Dataset.load_from_disk(str(cache_path))
-        ds = _tokenize_dataset(tokenizer, texts, labels)
+        ds = _tokenize_dataset(tokenizer, texts, labels, max_length=max_length)
         ds.save_to_disk(str(cache_path))
         log_info(f"Dataset cached to: {cache_path}")
         return ds
@@ -96,7 +97,7 @@ def build_hf_datasets(tokenizer, X_train, X_val, y_train, y_val, cache_dir: Path
             _build(X_val,   y_val,   cache_dir / "val"))
 
 
-def make_compute_metrics(spec: TrainerSpec, notes: str = ""):
+def make_compute_metrics(spec: TrainerSpec, notes: str = "", params: str = ""):
     def _compute_metrics(eval_pred):
         logits, labels = eval_pred
         preds = np.argmax(logits, axis=-1)
@@ -105,20 +106,22 @@ def make_compute_metrics(spec: TrainerSpec, notes: str = ""):
             model_name=spec.display_name,
             feature_desc="HF fine-tune",
             metrics=metrics,
-            params=f"model={spec.model_name}, max_length={MAX_LENGTH}",
+            params=params or f"model={spec.model_name}, max_length={MAX_LENGTH}",
             notes=notes,
         )
         return {"accuracy": metrics["accuracy"], "f1_macro": metrics["f1_macro"]}
     return _compute_metrics
 
 
-def build_trainer(spec: TrainerSpec, model, tokenizer, train_ds, val_ds, notes: str = "") -> Trainer:
+def build_trainer(spec: TrainerSpec, model, tokenizer, train_ds, val_ds, notes: str = "",
+                  learning_rate: float = 2e-5, batch_size: int = 16,
+                  seed: int = SEED, params: str = "") -> Trainer:
     training_args = TrainingArguments(
         output_dir=str(Path(spec.checkpoint_dir) / spec.model_name.replace("/", "_")),
         num_train_epochs=3,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
-        learning_rate=2e-5,
+        per_device_train_batch_size=batch_size,
+        per_device_eval_batch_size=batch_size,
+        learning_rate=learning_rate,
         weight_decay=0.01,
         warmup_ratio=0.1,
         eval_strategy="epoch",
@@ -127,7 +130,7 @@ def build_trainer(spec: TrainerSpec, model, tokenizer, train_ds, val_ds, notes: 
         load_best_model_at_end=True,
         metric_for_best_model="f1_macro",
         greater_is_better=True,
-        seed=SEED,
+        seed=seed,
         logging_steps=50,
         report_to="none",
     )
@@ -138,14 +141,18 @@ def build_trainer(spec: TrainerSpec, model, tokenizer, train_ds, val_ds, notes: 
         eval_dataset=val_ds,
         processing_class=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
-        compute_metrics=make_compute_metrics(spec, notes=notes),
+        compute_metrics=make_compute_metrics(spec, notes=notes, params=params),
     )
 
 
-def run_trainer(model: str, n_samples: int | None = 500, notes: str = "") -> Trainer:
+def run_trainer(model: str, n_samples: int | None = 500, notes: str = "",
+                learning_rate: float = 2e-5, max_length: int = MAX_LENGTH,
+                seed: int = SEED, batch_size: int = 16) -> Trainer:
     """Fine-tune one of the registered encoders.
 
     `model` is a key of SPECS: "distilbert", "finbert", "roberta", "deberta".
+    `learning_rate`, `max_length`, `seed` and `batch_size` allow controlled
+    variations; each combination gets its own leaderboard row and dataset cache.
     """
     spec = SPECS[model]
 
@@ -159,9 +166,13 @@ def run_trainer(model: str, n_samples: int | None = 500, notes: str = "") -> Tra
     tokenizer = load_tokenizer(spec)
 
     # Sample-size-specific cache dir so a 500-sample spike isn't served when we
-    # ask for the full dataset.
-    cache_dir = Path(spec.cache_dir) / ("full" if n_samples is None else f"n{n_samples}")
-    train_ds, val_ds = build_hf_datasets(tokenizer, X_train, X_val, y_train, y_val, cache_dir)
+    # ask for the full dataset. max_length variants get their own cache too.
+    suffix = "full" if n_samples is None else f"n{n_samples}"
+    if max_length != MAX_LENGTH:
+        suffix += f"_len{max_length}"
+    cache_dir = Path(spec.cache_dir) / suffix
+    train_ds, val_ds = build_hf_datasets(tokenizer, X_train, X_val, y_train, y_val, cache_dir,
+                                         max_length=max_length)
     log_info(f"Datasets — train={len(train_ds)} rows, val={len(val_ds)} rows")
 
     log_info(f"Loading {spec.model_name} sequence classifier ...")
@@ -175,7 +186,11 @@ def run_trainer(model: str, n_samples: int | None = 500, notes: str = "") -> Tra
         ignore_mismatched_sizes=True,
     )
 
-    trainer = build_trainer(spec, hf_model, tokenizer, train_ds, val_ds, notes=notes)
+    params = (f"model={spec.model_name}, max_length={max_length}, lr={learning_rate}, "
+              f"seed={seed}, n={'full' if n_samples is None else n_samples}")
+    trainer = build_trainer(spec, hf_model, tokenizer, train_ds, val_ds, notes=notes,
+                            learning_rate=learning_rate, batch_size=batch_size,
+                            seed=seed, params=params)
 
     log_info("Starting training ...")
     trainer.train()

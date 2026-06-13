@@ -58,6 +58,12 @@ def extract_embeddings(texts, model_path, pooling="cls", batch_size=32):
             
     return np.vstack(all_embs)
 
+def encoder_features(texts, pooling="cls", batch_size=32, model_path=None):
+    """Sentence embeddings from a frozen (not fine-tuned) encoder, as a feature matrix."""
+    if model_path is None:
+        model_path = DISTILBERT_MODEL_NAME
+    return extract_embeddings(list(texts), model_path, pooling=pooling, batch_size=batch_size)
+
 def generate_and_save_embeddings():
     log_info("Loading train data...")
     df = pd.read_csv(TRAIN_CSV_PATH)
