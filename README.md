@@ -2,11 +2,7 @@
 
 NLP project for the Text Mining course at NOVA IMS. Goal: classify the market sentiment of finance tweets as **Bearish (0) / Bullish (1) / Neutral (2)**.
 
-## Quick links
 
-- Notion kanban — `Nova IMS Projects → Text Mining`
-- Group: 4 members
-- **Internal deadline:** 2026-06-05 · **Hard deadline:** 2026-06-15
 
 ## Repository layout
 
@@ -82,43 +78,5 @@ These guidelines are summarized from the official [Project Guidelines - Text Min
   * **Bullish (1)**
   * **Neutral (2)**
 * **Tech Stack:** Python 3, using libraries such as `NLTK`, `Scikit-Learn`, `Hugging Face`, and `LangChain`.
-* **Group Size:** 1 to 4 students.
 
-### 📅 Deliverables & Deadlines
-* **Submission Deadline:** **Midnight, 15th of June 2026** (submitted via Moodle in a folder named `group_xx`).
-* **Required Files:**
-  1. `tm_tests_xx.ipynb`: Notebook containing all experimented techniques and their evaluation.
-  2. `tm_final_xx.ipynb`: A clean, ready-to-run notebook containing only the final solution (single pipeline with a single classification model).
-  3. `pred_xx.csv`: Test set predictions (only two columns: the ID of the test set and predicted labels).
-  4. `report_xx.pdf`: A PDF report documenting the work (maximum **15 pages**).
-
-### 📊 Evaluation & Solution Requirements
-Your project grade (out of 20 points) is determined by:
-1. **Data Exploration (2.00 pts):** Analyze the corpora, provide visual charts (bar charts, word clouds, etc.), and draw conclusions.
-2. **Corpus Split (0.50 pts):** Split the training set into train/validation (or K-Fold cross validation) to evaluate performance.
-3. **Data Preprocessing (3.00 pts):** Implement at least **four (4)** preprocessing techniques taught in class (regular expressions, stop words, lemmatization, stemming, etc.).
-4. **Feature Engineering (5.50 pts):** Implement and experiment with at least one variation of each of: `BoW`, `word2vec`, and `Transformer Encoder`.
-5. **Classification Models (4.50 pts):** Implement and test at least two variations of:
-   * **Traditional ML** (KNN, MLP, Logistic Regression, Random Forest, XGBoost, etc.)
-   * **Transformer Encoders**
-6. **Evaluation and Analysis (1.50 pts):** Evaluate models using Recall, Precision, Accuracy, and F1-Score, and analyze their real-world meaning.
-
-#### ✨ Extra Work (Max +2.00 pts):
-* **Extra Feature Engineering (+0.50 pts):** Each extra Transformer Encoder method applied (max 2 extra methods).
-* **Classification Models (+1.00 pt):** Correctly using a **Decoder model** (LLM) for classification.
-
-### 🏆 Extra Challenges (Grades capped at 20)
-* **Extra Challenge 1 (Performance Leaderboard):**
-  * 🥇 Best model: **+1.00 point**
-  * 🥈 2nd best: **+0.50 point**
-  * 🥉 3rd best: **+0.25 point**
-* **Extra Challenge 2 (Agentic AI workflow - up to +1.50 points):**
-  * Correctly design and implement an **agentic AI-based workflow** orchestrating the classification pipeline using tools or multiple models.
-  * Must feature a **conversational interface** that performs a non-trivial coordination/decision task (e.g., choosing between models, comparing classifier outputs, routing tweets, or automating evaluation).
-
-### ⚠️ Penalties & Plagiarism
-* **Page Limit Penalty:** **0.5-point penalty** per page exceeding the 15-page report limit.
-* **Late Submission:** **1.0-point penalty** per half-day late.
-* **Delivery Guide Non-Compliance:** Up to a **1.0-point penalty**.
-* **Academic Integrity:** Randomly selected students may be called for an oral defense of their code.
 
